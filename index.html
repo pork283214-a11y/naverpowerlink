@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>파워링크 입찰가 자동 조정 툴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --brand-primary:#3182F6;
+  --brand-primary-hover:#2272EB;
+  --brand-primary-pressed:#1B64DA;
+  --brand-weak-bg:#E8F3FF;
+  --brand-weak-fg:#1B64DA;
+
+  --status-success:#00C471;
+  --status-running:#3182F6;
+  --status-warning:#FFB800;
+  --status-danger:#F04452;
+  --status-idle:#8B95A1;
+
+  --neutral-canvas:#FFFFFF;
+  --neutral-surface:#F2F4F6;
+  --neutral-border:#E5E8EB;
+  --neutral-fg:#191F28;
+  --neutral-body:#4E5968;
+  --neutral-muted:#8B95A1;
+
+  --shadow-sm:0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:0 4px 12px rgba(15,23,42,0.08);
+  --shadow-lg:0 12px 32px rgba(15,23,42,0.12);
+
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:16px;
+  --radius-xl:20px;
+  --radius-full:999px;
+
+  --font-ui:'Pretendard Variable','Pretendard','Inter',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+  --font-mono:'JetBrains Mono','D2Coding',monospace;
+
+  --fill-up:#E8F3FF;
+  --fill-down:#FDECEE;
+  --fill-hold:#F2F4F6;
+  --fill-flag:#FFF6DC;
+  --text-up:#1B64DA;
+  --text-down:#C81E2C;
+  --text-flag:#8A6300;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --brand-primary:#4A90FF;
+    --brand-primary-hover:#5B9DFF;
+    --brand-primary-pressed:#3E7EE0;
+    --brand-weak-bg:#12233F;
+    --brand-weak-fg:#8FBBFF;
+
+    --status-success:#2ED88C;
+    --status-running:#4A90FF;
+    --status-warning:#FFC940;
+    --status-danger:#FF6B76;
+    --status-idle:#8B95A1;
+
+    --neutral-canvas:#0B0D11;
+    --neutral-surface:#16191F;
+    --neutral-border:#282C33;
+    --neutral-fg:#F2F4F6;
+    --neutral-body:#B0B8C1;
+    --neutral-muted:#6B7280;
+
+    --fill-up:#12233F;
+    --fill-down:#3A1418;
+    --fill-hold:#1C2027;
+    --fill-flag:#332B0C;
+    --text-up:#8FBBFF;
+    --text-down:#FF9AA2;
+    --text-flag:#FFD873;
+  }
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--neutral-canvas);
+  color:var(--neutral-fg);
+  font-family:var(--font-ui);
+  font-size:15px;
+  line-height:1.55;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 24px 96px;}
+
+.page-header{margin-bottom:32px;}
+.page-header h1{font-size:28px;line-height:38px;font-weight:700;margin:0 0 8px;}
+.page-header p{font-size:15px;color:var(--neutral-body);margin:0;}
+
+.badge-info{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--brand-weak-bg);color:var(--brand-weak-fg);
+  font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--radius-full);
+  margin-bottom:14px;
+}
+
+.card{
+  background:var(--neutral-surface);
+  border-radius:var(--radius-lg);
+  padding:20px;
+  box-shadow:var(--shadow-sm);
+  margin-bottom:20px;
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+.card-head h2{font-size:18px;line-height:26px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;}
+.step-num{
+  width:24px;height:24px;border-radius:var(--radius-full);
+  background:var(--brand-primary);color:#fff;font-size:12px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.card-sub{font-size:13px;color:var(--neutral-muted);margin-top:2px;}
+
+.dropzone{
+  border:2px dashed var(--neutral-border);
+  border-radius:var(--radius-md);
+  background:var(--neutral-canvas);
+  padding:32px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease;
+}
+.dropzone.drag{border-color:var(--brand-primary);background:var(--brand-weak-bg);}
+.dropzone .dz-icon{font-size:32px;margin-bottom:8px;}
+.dropzone .dz-title{font-weight:600;font-size:15px;margin-bottom:4px;}
+.dropzone .dz-sub{font-size:13px;color:var(--neutral-muted);}
+.dropzone input{display:none;}
+
+.file-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--neutral-canvas);border:1px solid var(--neutral-border);
+  border-radius:var(--radius-full);padding:6px 14px;font-size:13px;margin-top:12px;
+}
+.file-chip .x{cursor:pointer;color:var(--neutral-muted);font-weight:700;}
+
+.opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:13px;color:var(--neutral-body);font-weight:500;}
+select,input[type=text],input[type=number]{
+  height:44px;border-radius:var(--radius-sm);border:none;background:var(--neutral-surface);
+  padding:0 14px;font-size:14px;color:var(--neutral-fg);font-family:var(--font-ui);
+  outline:none;transition:background .15s ease, box-shadow .15s ease;
+}
+.card select,.card input[type=text],.card input[type=number]{background:var(--neutral-canvas);border:1px solid var(--neutral-border);}
+select:focus,input:focus{background:var(--neutral-canvas);box-shadow:0 0 0 2px var(--brand-primary);border-color:var(--brand-primary);}
+.field .hint{font-size:12px;color:var(--neutral-muted);}
+
+.mapping-table{width:100%;border-collapse:collapse;margin-top:4px;}
+.mapping-table th{
+  text-align:left;font-size:12px;color:var(--neutral-muted);font-weight:600;
+  padding:8px 10px;border-bottom:1px solid var(--neutral-border);
+}
+.mapping-table td{padding:8px 10px;border-bottom:1px solid var(--neutral-border);font-size:14px;vertical-align:middle;}
+.mapping-table tr:last-child td{border-bottom:none;}
+.req-pill{
+  display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--radius-full);
+}
+.req-required{background:rgba(240,68,82,.12);color:var(--status-danger);}
+.req-recommended{background:rgba(255,184,0,.16);color:#8A6300;}
+.req-optional{background:var(--neutral-surface);color:var(--neutral-muted);}
+.mapping-table select{width:100%;height:38px;}
+
+.preset-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+.preset-row select{flex:1;min-width:160px;height:38px;}
+
+.param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.param-grid .field.disabled{opacity:.45;pointer-events:none;}
+
+.param-chip-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px;}
+.param-chip{
+  background:var(--neutral-surface);border-radius:var(--radius-lg);padding:12px 14px;
+  display:flex;flex-direction:column;gap:2px;border:1px solid transparent;
+  transition:border-color .15s ease;
+}
+.param-chip .pc-label{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--neutral-muted);font-weight:600;}
+.param-chip .pc-value{font-size:17px;font-weight:700;color:var(--neutral-fg);font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.param-chip.pc-off{opacity:.5;}
+.param-chip.pc-up{background:var(--fill-up);}
+.param-chip.pc-down{background:var(--fill-down);}
+
+.custom-filter-block{margin-top:20px;}
+.custom-rule-row{
+  display:grid;grid-template-columns:1fr 90px 140px 32px;gap:8px;align-items:center;margin-bottom:8px;
+}
+.custom-rule-row select, .custom-rule-row input{height:40px;}
+.custom-rule-row .cr-remove{
+  width:32px;height:32px;border-radius:var(--radius-sm);border:none;background:var(--neutral-surface);
+  color:var(--neutral-muted);cursor:pointer;font-size:14px;
+}
+.custom-rule-row .cr-remove:hover{background:var(--status-danger);color:#fff;}
+.custom-rule-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.custom-rule-empty{font-size:13px;color:var(--neutral-muted);padding:8px 0;}
+@media (max-width:560px){.custom-rule-row{grid-template-columns:1fr;}}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;cursor:pointer;font-family:var(--font-ui);font-weight:600;font-size:14px;
+  border-radius:var(--radius-md);height:40px;padding:0 18px;
+  transition:background .15s ease, transform .1s ease;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--brand-primary);color:#fff;}
+.btn-primary:hover{background:var(--brand-primary-hover);}
+.btn-primary:disabled{background:var(--neutral-border);color:var(--neutral-muted);cursor:not-allowed;}
+.btn-secondary{background:var(--neutral-canvas);color:var(--neutral-fg);border:1px solid var(--neutral-border);}
+.btn-secondary:hover{background:var(--neutral-surface);}
+.btn-text{background:transparent;color:var(--brand-primary);height:32px;padding:0 8px;}
+.btn-text:hover{background:var(--brand-weak-bg);}
+.btn-lg{height:48px;padding:0 24px;font-size:15px;border-radius:var(--radius-lg);}
+
+.run-row{display:flex;justify-content:center;margin:28px 0;}
+
+.banner{
+  border-radius:var(--radius-md);padding:14px 16px;font-size:13px;margin-bottom:16px;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.banner-error{background:rgba(240,68,82,.08);color:var(--status-danger);}
+.banner-error b{color:inherit;}
+.banner-info{background:var(--brand-weak-bg);color:var(--neutral-body);}
+.banner-info b{color:var(--neutral-fg);}
+.banner-warn{background:rgba(255,184,0,.12);color:var(--neutral-body);}
+.banner-warn b{color:var(--neutral-fg);}
+
+/* ---------- view toggle ---------- */
+.view-tabs{margin-bottom:28px;}
+.view-tabs .tab{font-size:15px;font-weight:600;}
+
+/* ---------- guide view ---------- */
+.guide-nav{margin-bottom:20px;}
+.guide-nav .tab{font-size:13px;padding:8px 12px;}
+.mono-cell{font-family:var(--font-mono);font-size:12px;white-space:nowrap;}
+.mono-cell code{background:var(--neutral-surface);color:var(--neutral-fg);padding:1px 6px;border-radius:5px;margin-right:4px;}
+
+.guide-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.guide-step-card{background:var(--neutral-surface);border-radius:var(--radius-lg);padding:16px;}
+.guide-step-card .n{
+  width:22px;height:22px;border-radius:var(--radius-full);background:var(--brand-primary);color:#fff;
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:10px;
+}
+.guide-step-card h4{font-size:14px;font-weight:700;margin:0 0 4px;color:var(--neutral-fg);}
+.guide-step-card p{font-size:12.5px;color:var(--neutral-muted);margin:0;line-height:1.5;}
+@media (max-width:640px){.guide-steps{grid-template-columns:1fr 1fr;}}
+
+.guide-matrix{display:flex;flex-direction:column;border:1px solid var(--neutral-border);border-radius:var(--radius-md);overflow:hidden;}
+.guide-mrow{display:grid;grid-template-columns:24px 1fr auto;gap:14px;padding:14px 16px;border-bottom:1px solid var(--neutral-border);align-items:start;}
+.guide-mrow:last-child{border-bottom:none;}
+.guide-mrow .idx{font-family:var(--font-mono);font-size:12px;color:var(--neutral-muted);font-weight:700;padding-top:2px;}
+.guide-mrow .cond{font-size:13.5px;color:var(--neutral-fg);}
+.guide-mrow .cond .why{display:block;color:var(--neutral-muted);font-size:12.5px;margin-top:3px;font-weight:400;}
+.guide-mrow .out{display:flex;flex-direction:column;align-items:flex-end;gap:4px;white-space:nowrap;}
+.guide-mrow .adj{font-family:var(--font-mono);font-size:12px;color:var(--neutral-muted);}
+
+.guide-exports{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.guide-export-card{background:var(--neutral-surface);border-radius:var(--radius-lg);padding:18px;}
+.guide-export-card .tag{font-size:11px;font-weight:700;color:var(--neutral-muted);text-transform:uppercase;letter-spacing:.04em;}
+.guide-export-card h4{font-size:15px;margin:6px 0 8px;color:var(--neutral-fg);}
+.guide-export-card p{font-size:12.5px;color:var(--neutral-muted);margin:0;line-height:1.6;}
+.guide-export-card ul{margin:10px 0 0;padding-left:16px;font-size:12.5px;}
+.guide-export-card li{margin-bottom:4px;color:var(--neutral-body);}
+@media (max-width:760px){.guide-exports{grid-template-columns:1fr;}}
+
+.guide-code{
+  background:#12161F;color:#D7DEE9;border:1px solid #232B3A;border-radius:var(--radius-md);
+  padding:12px 14px;font-family:var(--font-mono);font-size:12.5px;overflow-x:auto;white-space:pre;margin-top:12px;
+}
+
+.guide-faq{border-top:1px solid var(--neutral-border);}
+.guide-qa{padding:16px 0;border-bottom:1px solid var(--neutral-border);}
+.guide-qa .q{font-size:14px;font-weight:700;margin:0 0 6px;color:var(--neutral-fg);}
+.guide-qa p:not(.q){font-size:13.5px;color:var(--neutral-body);margin:0;max-width:66ch;}
+
+.toast-host{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:var(--neutral-fg);color:var(--neutral-canvas);
+  border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+  padding:12px 16px;font-size:13px;min-width:220px;
+  animation:toastIn .2s ease-out;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{
+  background:var(--neutral-surface);border-radius:var(--radius-lg);padding:16px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.stat-card .stat-label{font-size:12px;color:var(--neutral-muted);font-weight:500;}
+.stat-card .stat-value{font-size:22px;font-weight:700;}
+.stat-card .stat-sub{font-size:12px;color:var(--neutral-muted);}
+.stat-up .stat-value{color:var(--text-up);}
+.stat-down .stat-value{color:var(--text-down);}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--neutral-border);margin-bottom:16px;overflow-x:auto;}
+.tab{
+  padding:10px 14px;font-size:14px;font-weight:600;color:var(--neutral-muted);
+  border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;
+}
+.tab.active{color:var(--neutral-fg);border-bottom-color:var(--brand-primary);}
+.tab .cnt{color:var(--neutral-muted);font-weight:500;}
+
+.table-scroll{overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--neutral-border);}
+table.results{width:100%;border-collapse:collapse;font-size:13px;background:var(--neutral-canvas);}
+table.results th{
+  position:sticky;top:0;background:var(--neutral-surface);color:var(--neutral-body);
+  font-size:12px;font-weight:600;text-align:left;padding:10px 12px;white-space:nowrap;
+  border-bottom:1px solid var(--neutral-border);cursor:pointer;user-select:none;
+}
+table.results th:hover{color:var(--neutral-fg);}
+table.results td{padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--neutral-border);}
+table.results tbody tr:last-child td{border-bottom:none;}
+table.results td.num{font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums;}
+table.results td.reason{white-space:normal;min-width:220px;color:var(--neutral-body);font-size:12.5px;}
+tr.row-up{background:var(--fill-up);}
+tr.row-down{background:var(--fill-down);}
+tr.row-hold{background:var(--fill-hold);}
+tr.row-flag td.reason{color:var(--text-flag);font-weight:600;}
+
+.verdict-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:700;padding:3px 10px;border-radius:var(--radius-full);
+}
+.v-up{background:rgba(49,130,246,.14);color:var(--text-up);}
+.v-down{background:rgba(240,68,82,.14);color:var(--text-down);}
+.v-hold{background:var(--neutral-border);color:var(--neutral-muted);}
+.v-keep{background:rgba(0,196,113,.14);color:var(--status-success);}
+
+.export-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+
+.pagination-row{
+  display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  margin-top:14px;font-size:13px;color:var(--neutral-body);
+}
+.pagination-row .btn{height:32px;padding:0 12px;font-size:13px;}
+.pagination-row .page-info{color:var(--neutral-muted);white-space:nowrap;}
+.large-data-note{
+  flex-basis:100%;font-size:12px;color:var(--neutral-muted);text-align:center;margin-top:2px;
+}
+
+.empty-state{
+  text-align:center;padding:56px 20px;color:var(--neutral-muted);
+}
+.empty-state .e-icon{font-size:36px;margin-bottom:10px;}
+.empty-state .e-title{font-size:15px;font-weight:600;color:var(--neutral-body);margin-bottom:4px;}
+.empty-state .e-sub{font-size:13px;}
+
+details.adv{margin-top:4px;}
+details.adv summary{cursor:pointer;font-size:13px;color:var(--brand-primary);font-weight:600;list-style:none;}
+details.adv summary::-webkit-details-marker{display:none;}
+details.adv summary:before{content:'▸ ';}
+details.adv[open] summary:before{content:'▾ ';}
+details.adv .param-grid{margin-top:14px;}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--neutral-muted);margin-top:10px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+.footer-note{font-size:12px;color:var(--neutral-muted);text-align:center;margin-top:32px;}
+
+.checkbox-inline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--neutral-body);margin-top:12px;}
+.checkbox-inline input{width:16px;height:16px;}
+
+.spinner-gear{
+  width:16px;height:16px;display:inline-block;vertical-align:-3px;flex-shrink:0;
+  animation:spin-gear 1s linear infinite;
+}
+@keyframes spin-gear{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+.processing-row{
+  display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--neutral-body);
+}
+.btn[disabled]{cursor:default;}
+.btn .spinner-gear{margin-right:2px;}
+
+@media (max-width:640px){
+  .wrap{padding:24px 16px 64px;}
+  .page-header h1{font-size:22px;line-height:30px;}
+}
+</style>
+</head>
+<body>
+<div class="toast-host" id="toastHost"></div>
+
+<div class="wrap">
+  <div class="page-header">
+    <span class="badge-info">● 로컬 실행 · 데이터는 서버로 전송되지 않아요</span>
+    <h1>파워링크 입찰가 자동 조정 툴</h1>
+    <p>키워드 성과 리포트를 올리면 기준값에 따라 입찰가 상향·하향 대상을 자동으로 판정하고, 근거와 함께 결과 파일을 만들어줘요.</p>
+  </div>
+
+  <div class="tabs view-tabs" id="viewTabs">
+    <div class="tab active" data-view="tool">🛠️ 툴 사용하기</div>
+    <div class="tab" data-view="guide">📘 사용 가이드</div>
+  </div>
+
+  <div id="toolView">
+
+  <!-- STEP 1: 업로드 -->
+  <div class="card">
+    <div class="card-head">
+      <h2><span class="step-num">1</span> Raw 데이터 업로드</h2>
+    </div>
+    <div class="card-sub" style="margin-bottom:14px;">CSV, TSV, Excel(xlsx/xls) 파일을 지원해요.</div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title">파일을 끌어다 놓거나 클릭해서 선택해주세요</div>
+      <div class="dz-sub">CSV · TSV · XLSX · XLS</div>
+      <input type="file" id="fileInput" accept=".csv,.tsv,.txt,.xlsx,.xls">
+    </div>
+    <div id="fileChipHost"></div>
+    <div id="processingHost"></div>
+
+    <div class="opt-grid" id="fileOptGrid" style="display:none;">
+      <div class="field">
+        <label>인코딩</label>
+        <select id="optEncoding">
+          <option value="utf-8">UTF-8 (자동)</option>
+          <option value="euc-kr">CP949 / EUC-KR</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>구분자 (CSV/TSV)</label>
+        <select id="optDelimiter">
+          <option value="auto">자동 감지</option>
+          <option value=",">콤마 (,)</option>
+          <option value="	">탭</option>
+          <option value=";">세미콜론 (;)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>헤더 행 번호</label>
+        <input type="number" id="optHeaderRow" value="1" min="1">
+      </div>
+      <div class="field">
+        <label>금액 단위</label>
+        <select id="optCurrencyUnit">
+          <option value="1">원</option>
+          <option value="10000">만원</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-secondary" id="reparseBtn" style="display:none;">옵션 다시 적용해서 다시 읽기</button>
+    </div>
+    <div id="uploadErrorHost"></div>
+    <div id="headerPreviewHost"></div>
+  </div>
+
+  <!-- STEP 2: 매핑 -->
+  <div class="card" id="mappingCard">
+    <div class="card-head">
+      <div>
+        <h2><span class="step-num">2</span> 컬럼 매핑</h2>
+        <div class="card-sub" id="mappingCardSub">raw 헤더를 표준 필드에 연결해주세요. 한 번 매핑하면 프리셋으로 저장해 다음에 재사용할 수 있어요.</div>
+      </div>
+    </div>
+
+    <details class="adv" id="mappingDetails">
+      <summary id="mappingSummary">표준 필드 목록 보기 (파일 업로드 전에도 확인할 수 있어요)</summary>
+
+      <div class="preset-row" style="margin-top:14px;">
+        <select id="presetSelect">
+          <option value="">저장된 프리셋 선택…</option>
+        </select>
+        <button class="btn btn-secondary" id="applyPresetBtn">불러오기</button>
+        <button class="btn btn-secondary" id="savePresetBtn">현재 매핑 저장</button>
+        <button class="btn btn-text" id="deletePresetBtn">삭제</button>
+      </div>
+
+      <div class="table-scroll" style="border:none;">
+        <table class="mapping-table">
+          <thead><tr><th>표준 필드</th><th>필수 여부</th><th>raw 헤더 매핑</th></tr></thead>
+          <tbody id="mappingBody"></tbody>
+        </table>
+      </div>
+
+      <label class="checkbox-inline">
+        <input type="checkbox" id="optAggregate">
+        동일 키워드를 광고그룹과 무관하게 합산해서 집계하기 (기본: 광고그룹 단위 유지)
+      </label>
+
+      <div class="field" id="ctrFormatField" style="max-width:320px;margin-top:16px;display:none;">
+        <label>CTR / CVR 원본 표기 방식</label>
+        <select id="optPercentFormat">
+          <option value="percent">이미 %로 표기됨 (예: 3.5 → 3.5%)</option>
+          <option value="ratio">0~1 비율로 표기됨 (예: 0.035 → 3.5%)</option>
+        </select>
+        <span class="hint">숫자에 %가 붙어 있으면 이 설정과 관계없이 그대로 인식해요</span>
+      </div>
+    </details>
+  </div>
+
+  <!-- STEP 3: 파라미터 -->
+  <div class="card" id="paramCard">
+    <div class="card-head">
+      <div>
+        <h2><span class="step-num">3</span> 판정 기준값</h2>
+        <div class="card-sub">기본값으로 바로 판정해요. 계정 목표에 맞게 바꾸고 싶으면 아래에서 확인·수정할 수 있어요.</div>
+      </div>
+    </div>
+
+    <div class="param-chip-row" id="paramChipRow"></div>
+
+    <details class="adv">
+      <summary>판정 기준값 확인 · 수정 (고급 설정)</summary>
+      <div class="param-grid">
+        <div class="field">
+          <label>목표 CPA (원)</label>
+          <input type="number" id="pTargetCPA" value="10000">
+        </div>
+        <div class="field" id="fieldTargetROAS">
+          <label>목표 ROAS (%)</label>
+          <input type="number" id="pTargetROAS" value="300">
+          <span class="hint">전환매출액이 매핑된 경우에만 사용돼요</span>
+        </div>
+        <div class="field">
+          <label>최소 클릭수 (표본 기준)</label>
+          <input type="number" id="pMinClicks" value="20">
+        </div>
+        <div class="field">
+          <label>목표 평균노출순위 범위</label>
+          <div style="display:flex;gap:8px;">
+            <input type="number" id="pRankMin" value="1" style="width:70px;">
+            <span style="align-self:center;color:var(--neutral-muted);">~</span>
+            <input type="number" id="pRankMax" value="3" style="width:70px;">
+          </div>
+        </div>
+        <div class="field">
+          <label>CPA 상한 허용배수</label>
+          <input type="number" step="0.1" id="pCpaUpperMult" value="1.3">
+        </div>
+        <div class="field">
+          <label>CPA 하한 허용배수 (우수 기준)</label>
+          <input type="number" step="0.1" id="pCpaLowerMult" value="0.8">
+        </div>
+        <div class="field">
+          <label>ROAS 하한 허용배수</label>
+          <input type="number" step="0.1" id="pRoasLowerMult" value="0.8">
+        </div>
+        <div class="field">
+          <label>1회 상향 조정폭 (%)</label>
+          <input type="number" id="pUpStep" value="10">
+        </div>
+        <div class="field">
+          <label>1회 하향 조정폭 (%)</label>
+          <input type="number" id="pDownStep" value="10">
+        </div>
+        <div class="field">
+          <label>CTR 급락 판단 기준 (%)</label>
+          <input type="number" id="pCtrDropPct" value="50">
+          <span class="hint">이전기간 CTR이 매핑된 경우에만 사용돼요</span>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div id="validationHost"></div>
+
+  <div class="run-row" id="runRow">
+    <button class="btn btn-primary btn-lg" id="runBtn"><span id="runBtnLabel">판정 실행하기</span></button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card" id="resultsCard" style="display:none;">
+    <div class="card-head">
+      <h2><span class="step-num">4</span> 판정 결과</h2>
+    </div>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <details class="adv custom-filter-block">
+      <summary>⚡ 커스텀 기준으로 선별 (고급)</summary>
+      <div class="card-sub" style="margin:12px 0 12px;">CPA·ROAS·CTR 등 원하는 지표 조건을 직접 만들어서, 판정 결과와 별개로 그 조건에 맞는 키워드만 따로 모아볼 수 있어요. 여러 조건을 추가하면 모두 만족하는 키워드만 선별돼요.</div>
+      <div id="customRulesHost"></div>
+      <div class="custom-rule-actions">
+        <button class="btn btn-secondary" id="addRuleBtn">+ 조건 추가</button>
+        <button class="btn btn-primary" id="applyCustomBtn">이 조건으로 선별하기</button>
+        <button class="btn btn-text" id="clearRulesBtn">초기화</button>
+      </div>
+    </details>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="table-scroll">
+      <table class="results" id="resultsTable">
+        <thead><tr id="resultsHead"></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination-row" id="paginationHost"></div>
+
+    <div class="legend">
+      <span><i style="background:var(--fill-up);"></i>상향</span>
+      <span><i style="background:var(--fill-down);"></i>하향</span>
+      <span><i style="background:var(--fill-hold);"></i>관찰/보류</span>
+      <span><i style="background:var(--fill-flag);"></i>소재·랜딩 점검 플래그</span>
+    </div>
+
+    <div class="export-row">
+      <button class="btn btn-secondary" id="exportCsvBtn"><span id="exportCsvLabel">CSV로 내보내기</span></button>
+      <button class="btn btn-secondary" id="exportExcelBtn"><span id="exportExcelLabel">Excel로 내보내기</span></button>
+      <button class="btn btn-primary" id="exportNaverBtn"><span id="exportNaverLabel">네이버 입찰 조정 파일 받기</span></button>
+    </div>
+    <div class="card-sub" style="text-align:right;margin-top:6px;">"네이버 입찰 조정 파일"은 상향·하향이 필요한 키워드만 담아, 네이버 검색광고의 '키워드 입찰가 일괄수정' 업로드 양식 그대로 만들어줘요.</div>
+  </div>
+
+  <div class="footer-note">키워드별 조정폭은 1회 최대 ±10%로 제한돼요 · 클릭수가 적은 키워드는 표본 신뢰도가 낮아 "관찰"로 분류돼요</div>
+
+  </div><!-- /toolView -->
+
+  <div id="guideView" style="display:none;">
+    <div class="card">
+      <span class="badge-info">📘 사용 가이드</span>
+      <p style="font-size:15px;color:var(--neutral-body);margin:0 0 4px;max-width:66ch;">키워드 성과 raw 데이터를 업로드하면 노출·클릭·전환 지표를 기반으로 입찰가 상향·하향 대상을 자동 판정하고, 근거와 함께 결과 파일을 만들어주는 이 툴의 사용법과 판정 기준을 정리했어요.</p>
+    </div>
+
+    <div class="tabs guide-nav" id="guideNav">
+      <div class="tab" data-anchor="g-steps">4단계 흐름</div>
+      <div class="tab" data-anchor="g-fields">컬럼 매핑 필드</div>
+      <div class="tab" data-anchor="g-params">판정 기준값</div>
+      <div class="tab" data-anchor="g-matrix">판정 매트릭스</div>
+      <div class="tab" data-anchor="g-reading">결과 읽는 법</div>
+      <div class="tab" data-anchor="g-export">내보내기</div>
+      <div class="tab" data-anchor="g-faq">문제해결</div>
+      <div class="tab" data-anchor="g-privacy">데이터 프라이버시</div>
+    </div>
+
+    <div class="card" id="g-steps">
+      <div class="card-head"><h2>4단계 흐름</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">화면에 표시되는 순서 그대로예요. 3단계는 기본값으로 바로 실행되니, 특별히 조정할 게 없다면 건너뛰어도 돼요.</div>
+      <div class="guide-steps">
+        <div class="guide-step-card">
+          <div class="n">1</div>
+          <h4>업로드</h4>
+          <p>CSV·TSV·XLSX·XLS 지원. 인코딩(UTF-8/CP949), 구분자, 헤더 행 번호, 금액 단위(원/만원)를 옵션으로 조정할 수 있어요.</p>
+        </div>
+        <div class="guide-step-card">
+          <div class="n">2</div>
+          <h4>컬럼 매핑</h4>
+          <p>헤더 이름을 보고 표준 필드에 자동 연결돼요. 매핑을 "프리셋"으로 저장하면 다음 업로드부터 자동 적용돼요.</p>
+        </div>
+        <div class="guide-step-card">
+          <div class="n">3</div>
+          <h4>판정 기준값</h4>
+          <p>목표 CPA 10,000원 등 기본값으로 바로 판정해요. "고급 설정"을 펼치면 계정 목표에 맞게 바꿀 수 있어요.</p>
+        </div>
+        <div class="guide-step-card">
+          <div class="n">4</div>
+          <h4>결과 확인</h4>
+          <p>판정별 탭·정렬로 화면에서 훑어보고, CSV·Excel·네이버 업로드 파일로 내려받아요.</p>
+        </div>
+      </div>
+      <div class="banner banner-info" style="margin-top:16px;">💡 <div><b>필수 컬럼이 매핑되지 않으면</b> "판정 실행하기"를 눌러도 실행되지 않고, 어떤 필드가 비었는지 화면에 안내돼요.</div></div>
+    </div>
+
+    <div class="card" id="g-fields">
+      <div class="card-head"><h2>컬럼 매핑 필드</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">raw 파일의 실제 헤더명이 무엇이든, 아래 표준 필드에 매핑되면 툴 내부에서는 이 이름만 사용해요. "인식 예시"에 없는 이름이라도 비슷하면 대부분 자동으로 잡혀요 — 안 잡히면 매핑 표 드롭다운에서 직접 골라주면 돼요.</div>
+      <div class="table-scroll" style="border:none;">
+        <table class="mapping-table">
+          <thead><tr><th>표준 필드</th><th>필수 여부</th><th>인식 예시 헤더</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td>키워드</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>키워드</code> <code>kw_name</code></td><td>판정의 기본 키예요.</td></tr>
+            <tr><td>키워드ID</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>키워드ID</code> <code>nccKeywordId</code></td><td>네이버 입찰 조정 파일을 만들 때 각 키워드를 정확히 지정하는 데 필요해요.</td></tr>
+            <tr><td>노출수</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>노출수</code> <code>impressions</code></td><td>CTR·평균노출순위 판정의 기반이에요.</td></tr>
+            <tr><td>클릭수</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>클릭수</code> <code>clicks</code></td><td>CVR·CPA 계산과 표본 필터에 사용돼요.</td></tr>
+            <tr><td>총광고비</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>총비용(VAT포함)</code> <code>총광고비</code></td><td>CPA·ROAS 계산의 기준이에요.</td></tr>
+            <tr><td>전환수</td><td><span class="req-pill req-required">필수</span></td><td class="mono-cell"><code>전환수</code> <code>conv_cnt</code></td><td>무전환 판정과 CPA 계산에 사용돼요.</td></tr>
+            <tr><td>현재입찰가</td><td><span class="req-pill req-recommended">권장</span></td><td class="mono-cell"><code>현재입찰가</code> <code>입찰가(원)</code></td><td>없으면 예상 입찰가 계산과 네이버 업로드 파일 생성이 생략돼요.</td></tr>
+            <tr><td>평균노출순위</td><td><span class="req-pill req-recommended">권장</span></td><td class="mono-cell"><code>평균노출순위</code> <code>avg_rank</code></td><td>없으면 판정 매트릭스에서 순위 조건만 빼고 나머지로 판정해요.</td></tr>
+            <tr><td>캠페인 / 광고그룹</td><td><span class="req-pill req-optional">선택</span></td><td class="mono-cell"><code>캠페인</code> <code>광고그룹명</code></td><td>없으면 "전체"로 통합 처리돼요.</td></tr>
+            <tr><td>전환매출액</td><td><span class="req-pill req-optional">선택</span></td><td class="mono-cell"><code>전환매출액(전체)</code></td><td>없으면 ROAS 조건은 빠지고 CPA 중심으로 판정해요.</td></tr>
+            <tr><td>CTR / CVR / CPC</td><td><span class="req-pill req-optional">선택</span></td><td class="mono-cell"><code>클릭률(%)</code> <code>전환율(%)</code> <code>평균클릭비용</code></td><td>raw에 이미 있으면 그 값을 그대로 쓰고, 없으면 자동 계산해요.</td></tr>
+            <tr><td>이전기간 CTR</td><td><span class="req-pill req-optional">선택</span></td><td class="mono-cell"><code>이전기간CTR</code></td><td>매핑하면 판정 매트릭스 5번 "CTR 급락" 조건이 켜져요.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="banner banner-info">💡 <div><b>CTR/CVR 원본 값이 "3.5"인지 "0.035"인지 헷갈릴 때</b> — 컬럼 매핑 화면 하단의 "CTR/CVR 원본 표기 방식"에서 선택하면 돼요. 값에 %가 붙어 있으면 이 설정과 무관하게 항상 정확히 인식해요.</div></div>
+      <p style="font-size:14px;color:var(--neutral-body);max-width:66ch;"><strong>동일 키워드를 광고그룹과 무관하게 합산해서 집계</strong> 옵션을 켜면 여러 광고그룹에 걸친 같은 키워드를 하나로 합쳐 판정해요. 이때도 네이버 입찰 조정 파일은 광고그룹별 실제 키워드ID와 그 키워드의 원래 입찰가를 기준으로 개별 계산돼요 — 평균값으로 뭉뚱그리지 않아요.</p>
+    </div>
+
+    <div class="card" id="g-params">
+      <div class="card-head"><h2>판정 기준값</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">아래는 초기 기본값이에요. "판정 기준값 확인·수정 (고급 설정)"을 펼치면 계정 목표에 맞게 바꿀 수 있고, 건드리지 않아도 이 값으로 바로 판정돼요.</div>
+      <div class="table-scroll" style="border:none;">
+        <table class="mapping-table">
+          <thead><tr><th>파라미터</th><th>기본값</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td>목표 CPA</td><td class="mono-cell">10,000원</td><td>전환당 목표 비용이에요.</td></tr>
+            <tr><td>목표 ROAS</td><td class="mono-cell">300%</td><td>전환매출액이 매핑된 경우에만 사용돼요.</td></tr>
+            <tr><td>최소 클릭수</td><td class="mono-cell">20회</td><td>이 미만이면 표본 부족으로 "관찰" 처리돼요.</td></tr>
+            <tr><td>목표 평균노출순위 범위</td><td class="mono-cell">1 ~ 3위</td><td>이 범위를 벗어나면 조정 검토 대상이에요.</td></tr>
+            <tr><td>CPA 상한 허용배수</td><td class="mono-cell">×1.3</td><td>목표 CPA의 130% 초과 시 하향 검토해요.</td></tr>
+            <tr><td>CPA 하한 허용배수</td><td class="mono-cell">×0.8</td><td>목표 CPA의 80% 이하면 우수 기준으로 상향 검토해요.</td></tr>
+            <tr><td>ROAS 하한 허용배수</td><td class="mono-cell">×0.8</td><td>목표 ROAS의 80% 미만이면 하향 검토해요.</td></tr>
+            <tr><td>1회 상향 / 하향 조정폭</td><td class="mono-cell">±10%</td><td>입찰가 급변동을 막기 위한 1회 조정 한도예요.</td></tr>
+            <tr><td>CTR 급락 판단 기준</td><td class="mono-cell">50%</td><td>이전기간 CTR이 매핑된 경우에만 사용돼요.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="g-matrix">
+      <div class="card-head"><h2>판정 매트릭스</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">표본 유의성 필터(클릭수 &lt; 최소클릭수 → "관찰")를 통과한 키워드에 한해, 아래 조건을 <strong>위에서부터 순서대로</strong> 평가해 먼저 만족하는 조건으로 판정을 확정해요. 비용 통제를 우선순위로 둔 순서예요.</div>
+      <div class="guide-matrix">
+        <div class="guide-mrow">
+          <div class="idx">1</div>
+          <div class="cond">전환수 = 0 이고 총광고비 ≥ 목표CPA<span class="why">무전환 상태로 목표 CPA 이상 비용을 소진했어요.</span></div>
+          <div class="out"><span class="verdict-pill v-down">하향</span><span class="adj">-10%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">2</div>
+          <div class="cond">전환수 ≥ 1 이고 CPA &gt; 목표CPA × 1.3<span class="why">CPA가 목표 대비 130%를 초과했어요.</span></div>
+          <div class="out"><span class="verdict-pill v-down">하향</span><span class="adj">-10%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">3</div>
+          <div class="cond">ROAS &lt; 목표ROAS × 0.8<span class="why">ROAS가 목표 대비 80% 미만이에요. (전환매출액 매핑 시에만 평가)</span></div>
+          <div class="out"><span class="verdict-pill v-down">하향</span><span class="adj">-10%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">4</div>
+          <div class="cond">CPA ≤ 목표CPA × 0.8 이고 ROAS 조건 충족 이고 평균노출순위 &gt; 3위<span class="why">효율이 우수하지만 노출순위가 낮아 기회 손실이 있을 것으로 보여요.</span></div>
+          <div class="out"><span class="verdict-pill v-up">상향</span><span class="adj">+10%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">5</div>
+          <div class="cond">CTR이 이전기간 대비 50%↑ 급락<span class="why">입찰가 문제가 아닌 소재·랜딩페이지 이슈일 수 있어요 — 노란색 플래그로 별도 표시. (이전기간 CTR 매핑 시에만 평가, 하향보다 먼저 검사해 잘못 묻히지 않게 해요)</span></div>
+          <div class="out"><span class="verdict-pill v-hold">조정 보류</span><span class="adj">0%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">6</div>
+          <div class="cond">목표CPA ≤ CPA ≤ 목표CPA × 1.3 이고 ROAS 조건 충족 이고 평균노출순위 1~3위<span class="why">목표 지표 범위 안에서 안정적으로 운영되고 있어요.</span></div>
+          <div class="out"><span class="verdict-pill v-keep">유지</span><span class="adj">0%</span></div>
+        </div>
+        <div class="guide-mrow">
+          <div class="idx">7</div>
+          <div class="cond">위 조건에 모두 해당하지 않음<span class="why">추가 데이터가 쌓인 뒤 다시 검토해요.</span></div>
+          <div class="out"><span class="verdict-pill v-hold">관찰</span><span class="adj">0%</span></div>
+        </div>
+      </div>
+      <div class="banner banner-warn">⚠️ <div><b>평균노출순위 또는 전환매출액이 매핑되지 않은 경우</b> 해당 조건은 판정에서 제외되고 나머지 조건만으로 평가돼요.</div></div>
+    </div>
+
+    <div class="card" id="g-reading">
+      <div class="card-head"><h2>결과 읽는 법</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">판정 결과는 표 배경색과 뱃지로 이중 표시돼요.</div>
+      <div class="legend" style="margin-top:0;margin-bottom:20px;">
+        <span><i style="background:var(--fill-up);"></i>상향 — 입찰가를 올려볼 만한 키워드</span>
+        <span><i style="background:var(--fill-down);"></i>하향 — 비용 절감이 시급한 키워드</span>
+        <span><i style="background:var(--fill-hold);"></i>관찰 / 조정 보류 — 표본 부족 또는 판단 유보</span>
+        <span><i style="background:var(--fill-flag);"></i>소재·랜딩 점검 플래그 — 입찰가가 아닌 다른 원인 의심</span>
+      </div>
+      <h3 style="font-size:15px;font-weight:600;margin:0 0 10px;">표 다루기</h3>
+      <ul style="font-size:14px;color:var(--neutral-body);max-width:66ch;padding-left:20px;margin:0;">
+        <li style="margin-bottom:6px;">상단 탭(전체·상향·하향·관찰/보류·유지)으로 빠르게 필터링해요.</li>
+        <li style="margin-bottom:6px;">열 제목을 클릭하면 그 기준으로 정렬돼요 (다시 클릭하면 역순).</li>
+        <li style="margin-bottom:6px;">키워드가 많으면 화면에는 <strong>100개씩 페이지네이션</strong>돼요. 정렬·필터는 항상 전체 데이터 기준으로 동작하고, 내보내기 파일에는 필터링된 전체가 다 들어가니 큰 데이터는 화면 대신 Excel·CSV로 확인하는 걸 추천해요.</li>
+      </ul>
+    </div>
+
+    <div class="card" id="g-export">
+      <div class="card-head"><h2>내보내기</h2></div>
+      <div class="card-sub" style="margin-bottom:16px;">세 가지 방식으로 결과를 받을 수 있어요.</div>
+      <div class="guide-exports">
+        <div class="guide-export-card">
+          <span class="tag">빠른 확인</span>
+          <h4>CSV</h4>
+          <p>현재 탭에서 필터링된 결과를 그대로 내려받아요. 시스템 연동용 보조 산출물로 적합해요.</p>
+        </div>
+        <div class="guide-export-card">
+          <span class="tag">담당자 검토용</span>
+          <h4>Excel</h4>
+          <p>5개 시트로 자동 구성돼요.</p>
+          <ul>
+            <li>전체결과 — 판정 컬럼 자동필터 포함</li>
+            <li>상향 대상 / 하향 대상 / 관찰_보류 대상</li>
+            <li>요약 — 판정별 건수·비중, 예상 광고비 증감 추정</li>
+          </ul>
+          <p style="margin-top:8px;">판정별 배경색이 그대로 적용되고, 소재점검 플래그 행은 사유 칸이 굵게 강조돼요.</p>
+        </div>
+        <div class="guide-export-card">
+          <span class="tag">바로 업로드용</span>
+          <h4>네이버 입찰 조정 파일</h4>
+          <p>네이버 검색광고 "키워드 입찰가 일괄수정" 업로드 양식 그대로 만들어요.</p>
+          <ul>
+            <li><strong>키워드ID·현재입찰가</strong> 매핑 필수</li>
+            <li>상향·하향이 필요한 키워드만 포함 (유지·관찰 제외)</li>
+            <li>안내문 6행 보존, CP949 인코딩</li>
+          </ul>
+        </div>
+      </div>
+      <div class="banner banner-info">📎 <div><b>네이버 업로드 파일 사용법</b> — 네이버 검색광고 관리시스템 접속 → 파워링크 캠페인 → 키워드 관리 → 대량 관리 → 업로드에서, 내려받은 CSV 파일을 그대로 올리면 돼요. 아래처럼 1~6행에 원본 안내문이 그대로 남아있고, 7행부터 조정 내역이 채워져 있어요.</div></div>
+      <div class="guide-code">1~5행: 네이버 원본 안내문 (건드리지 마세요)
+6행:   광고그룹ID (선택),키워드ID (필수),키워드 (선택),"키워드입찰가 (필수,숫자만)"
+7행~:  ,8812345,겨울코트,4500
+       ,8812346,롱패딩,6300</div>
+    </div>
+
+    <div class="card" id="g-faq">
+      <div class="card-head"><h2>문제해결</h2></div>
+      <div class="guide-faq">
+        <div class="guide-qa">
+          <p class="q">Q. 업로드했는데 아무것도 안 바뀌어요</p>
+          <p>화면 상단에 빨간 배너가 뜨는지 확인해보세요. 실패 원인(라이브러리 로딩 실패, 헤더 행 번호 오류, 데이터 없음 등)이 사라지지 않고 계속 표시돼요. xlsx 파일은 용량이 크면 처리에 시간이 걸릴 수 있는데, 이때는 톱니바퀴 아이콘이 도는 처리 중 표시가 함께 떠요.</p>
+        </div>
+        <div class="guide-qa">
+          <p class="q">Q. 키워드가 너무 많아서 느려요</p>
+          <p>화면 표는 항상 100개씩만 그려서 데이터가 몇천 개여도 멈추지 않아요. 전체를 확인하려면 Excel·CSV로 내려받는 걸 추천해요 — 내보내기 파일에는 필터링된 전체 데이터가 다 담겨요.</p>
+        </div>
+        <div class="guide-qa">
+          <p class="q">Q. 업로드 CSV를 열면 한글이 깨져 보여요</p>
+          <p>1단계 업로드 옵션에서 인코딩을 UTF-8(자동) ↔ CP949/EUC-KR로 바꾼 뒤 "옵션 다시 적용해서 다시 읽기"를 눌러보세요.</p>
+        </div>
+        <div class="guide-qa">
+          <p class="q">Q. 매핑을 매번 새로 해야 하나요</p>
+          <p>아니요. 컬럼 매핑 화면에서 "현재 매핑 저장"으로 이름을 붙여두면, 다음부터는 프리셋 선택만으로 같은 양식의 파일을 자동 매핑할 수 있어요.</p>
+        </div>
+        <div class="guide-qa" style="border-bottom:none;">
+          <p class="q">Q. 네이버 입찰 조정 파일 버튼을 눌러도 안 만들어져요</p>
+          <p>"현재입찰가" 필드가 매핑되어 있어야 새 입찰가를 계산할 수 있어요. 또한 상향·하향 대상이 하나도 없으면 만들 내용이 없다는 안내만 뜨는 게 정상이에요.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="g-privacy">
+      <div class="card-head"><h2>데이터 프라이버시</h2></div>
+      <p style="font-size:14px;color:var(--neutral-body);max-width:66ch;">업로드한 raw 데이터는 브라우저 안에서만 처리되고 어떤 서버로도 전송되지 않아요. 페이지를 새로고침하거나 닫으면 처리 중이던 데이터는 사라지므로(자동 저장되지 않음), 광고비·매출 같은 민감한 수치를 다루기에 적합한 방식이에요. 컬럼 매핑 프리셋만 편의를 위해 브라우저 로컬 저장소(localStorage)에 남아요.</p>
+    </div>
+  </div><!-- /guideView -->
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var STANDARD_FIELDS = [
+  {key:'campaign', label:'캠페인', level:'optional', guesses:['캠페인명','campaignname','캠페인','campaign_name','campaign']},
+  {key:'adgroup', label:'광고그룹', level:'optional', guesses:['광고그룹명','adgroupname','광고그룹','adgroup','ad group','ad_group','그룹명','그룹']},
+  {key:'keyword', label:'키워드', level:'required', guesses:['키워드명','keywordname','kw_name','검색어','키워드','keyword']},
+  {key:'keywordId', label:'키워드ID', level:'required', guesses:['키워드id','keywordid','키워드아이디','kw_id','keyword_id','nccKeywordId']},
+  {key:'currentBid', label:'현재입찰가', level:'recommended', guesses:['현재입찰가','입찰가(원)','최대클릭비용','maxcpc','입찰단가','bidamount','입찰가','bid']},
+  {key:'impressions', label:'노출수', level:'required', guesses:['노출수','impressioncount','impressions','노출','imp']},
+  {key:'clicks', label:'클릭수', level:'required', guesses:['클릭수','clickcount','clicks','클릭']},
+  {key:'cost', label:'총광고비', level:'required', guesses:['총비용(vat포함)','총비용(vat포함가)','총광고비','총소진비용','총비용','adspend','spend','비용','cost','광고비','소진액','지출액']},
+  {key:'avgRank', label:'평균노출순위', level:'recommended', guesses:['평균노출순위','평균클릭순위','avgrank','avg_rank','평균순위','노출순위','순위','rank']},
+  {key:'conversions', label:'전환수', level:'required', guesses:['전환수','전환건수','conversioncount','conv_cnt','conversions','전환']},
+  {key:'revenue', label:'전환매출액', level:'optional', guesses:['전환매출액(전체)','전환매출액','전환매출','conv_revenue','전환가치','conversionvalue','매출액','revenue','매출']},
+  {key:'ctr', label:'CTR(클릭률)', level:'optional', guesses:['클릭률(%)','클릭률','클릭율','ctr(%)','ctr']},
+  {key:'cvr', label:'CVR(전환율)', level:'optional', guesses:['전환율(%)','전환율','cvr(%)','cvr']},
+  {key:'cpc', label:'CPC(평균클릭비용)', level:'optional', guesses:['평균클릭비용(vat포함)','평균클릭비용','클릭당비용','클릭단가','costperclick','cpc(원)','cpc']},
+  {key:'prevCtr', label:'이전기간 CTR(%)', level:'optional', guesses:['이전기간ctr','이전기간클릭률','직전ctr','직전클릭률','prev_ctr']}
+];
+
+var LEVEL_LABEL = {required:'필수', recommended:'권장', optional:'선택'};
+
+var PAGE_SIZE = 100;
+
+var state = {
+  headers: [],
+  rows: [],
+  mapping: {},
+  results: [],
+  activeFilter: 'all',
+  sortKey: null,
+  sortDir: 1,
+  page: 0,
+  parsedFrom: null,
+  customRules: [],
+  customRulesActive: false
+};
+
+var CUSTOM_METRICS = [
+  {key:'cpa', label:'CPA', unit:'원'},
+  {key:'roas', label:'ROAS', unit:'%'},
+  {key:'ctr', label:'CTR', unit:'%'},
+  {key:'cvr', label:'CVR', unit:'%'},
+  {key:'cpc', label:'CPC', unit:'원'},
+  {key:'cost', label:'총광고비', unit:'원'},
+  {key:'impressions', label:'노출수', unit:''},
+  {key:'clicks', label:'클릭수', unit:''},
+  {key:'conversions', label:'전환수', unit:''},
+  {key:'avgRank', label:'평균노출순위', unit:'위'},
+  {key:'currentBid', label:'현재입찰가', unit:'원'},
+  {key:'adj', label:'권장 조정폭', unit:'%'}
+];
+var CUSTOM_OPS = [
+  {key:'gte', label:'≥ 이상'},
+  {key:'gt', label:'＞ 초과'},
+  {key:'lte', label:'≤ 이하'},
+  {key:'lt', label:'＜ 미만'},
+  {key:'eq', label:'＝ 같음'}
+];
+
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, html){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+function toast(msg){
+  var host = $('toastHost');
+  var t = el('div','toast', msg);
+  host.appendChild(t);
+  setTimeout(function(){
+    t.style.transition = 'opacity .2s ease';
+    t.style.opacity = '0';
+    setTimeout(function(){ host.removeChild(t); }, 200);
+  }, 3200);
+}
+
+var GEAR_SVG = '<svg class="spinner-gear" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94z M12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"/></svg>';
+
+function setBtnLoading(btn, labelEl, loading, loadingText, normalText){
+  if(loading){
+    if(!btn.style.minWidth) btn.style.minWidth = btn.offsetWidth + 'px';
+    btn.disabled = true;
+    labelEl.innerHTML = GEAR_SVG + ' ' + loadingText;
+  } else {
+    btn.disabled = false;
+    labelEl.textContent = normalText;
+  }
+}
+
+function showUploadError(msg){
+  var host = $('uploadErrorHost');
+  host.innerHTML = '';
+  var b = el('div','banner banner-error', '⚠️ <div><b>문제가 생겼어요.</b><br>' + msg + '</div>');
+  host.appendChild(b);
+}
+function clearUploadError(){ $('uploadErrorHost').innerHTML = ''; }
+
+window.addEventListener('error', function(e){
+  showUploadError('예상치 못한 오류가 발생했어요: ' + (e && e.message ? e.message : e) + '<br><span style="color:var(--neutral-muted);">브라우저에서 F12를 눌러 콘솔 탭을 확인하면 더 자세한 내용을 볼 수 있어요.</span>');
+});
+window.addEventListener('unhandledrejection', function(e){
+  showUploadError('예상치 못한 오류가 발생했어요: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
+function fmtNum(n, digits){
+  if(n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString('ko-KR', {maximumFractionDigits: digits===undefined?0:digits, minimumFractionDigits:0});
+}
+function fmtPct(n, digits){
+  if(n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toFixed(digits===undefined?1:digits) + '%';
+}
+
+// ---------- 파일 파싱 ----------
+
+function parseDelimited(text, delimiter){
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var lines = text.split(/\r\n|\n|\r/).filter(function(l){ return l.length > 0; });
+  if(delimiter === 'auto'){
+    var first = lines[0] || '';
+    var counts = {',': (first.match(/,/g)||[]).length, '\t': (first.match(/\t/g)||[]).length, ';': (first.match(/;/g)||[]).length};
+    delimiter = Object.keys(counts).reduce(function(a,b){ return counts[a] >= counts[b] ? a : b; });
+  }
+  return lines.map(function(line){
+    var out = [], cur = '', inQuotes = false;
+    for(var i=0;i<line.length;i++){
+      var c = line[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; } else { inQuotes = false; }
+        } else { cur += c; }
+      } else {
+        if(c === '"'){ inQuotes = true; }
+        else if(c === delimiter){ out.push(cur); cur = ''; }
+        else { cur += c; }
+      }
+    }
+    out.push(cur);
+    return out.map(function(s){ return s.trim(); });
+  });
+}
+
+function readFileAsRows(file, opts, cb){
+  var ext = file.name.split('.').pop().toLowerCase();
+  if(ext === 'xlsx' || ext === 'xls'){
+    var fr = new FileReader();
+    fr.onload = function(e){
+      try{
+        var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
+        rows = rows.map(function(r){ return r.map(function(v){ return v === null || v === undefined ? '' : String(v); }); });
+        cb(null, rows);
+      } catch(err){ cb(err); }
+    };
+    fr.onerror = function(){ cb(new Error('파일을 읽지 못했어요.')); };
+    fr.readAsArrayBuffer(file);
+  } else {
+    var fr2 = new FileReader();
+    fr2.onload = function(e){
+      try{
+        var decoder = new TextDecoder(opts.encoding || 'utf-8');
+        var text = decoder.decode(e.target.result);
+        var rows = parseDelimited(text, opts.delimiter || 'auto');
+        cb(null, rows);
+      } catch(err){ cb(err); }
+    };
+    fr2.onerror = function(){ cb(new Error('파일을 읽지 못했어요.')); };
+    fr2.readAsArrayBuffer(file);
+  }
+}
+
+// ---------- 업로드 UI ----------
+
+var currentFile = null;
+
+var dropzone = $('dropzone');
+var fileInput = $('fileInput');
+
+dropzone.addEventListener('click', function(){ fileInput.click(); });
+dropzone.addEventListener('dragover', function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', function(){ dropzone.classList.remove('drag'); });
+dropzone.addEventListener('drop', function(e){
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', function(){
+  if(fileInput.files.length) handleFile(fileInput.files[0]);
+});
+$('reparseBtn').addEventListener('click', function(){
+  if(currentFile) handleFile(currentFile, true);
+});
+
+function handleFile(file, isReparse){
+  try{
+    clearUploadError();
+    $('headerPreviewHost').innerHTML = '';
+    currentFile = file;
+    var ext = file.name.split('.').pop().toLowerCase();
+    var isDelim = (ext === 'csv' || ext === 'tsv' || ext === 'txt');
+
+    if((ext === 'xlsx' || ext === 'xls') && typeof XLSX === 'undefined'){
+      showUploadError('Excel 파일을 읽는 라이브러리(SheetJS)를 불러오지 못했어요. 인터넷 연결 또는 방화벽/보안 프로그램이 cdnjs.cloudflare.com 접속을 막고 있지 않은지 확인한 뒤, 페이지를 새로고침해서 다시 시도해주세요. CSV로 내보내서 올리는 방법도 있어요.');
+      return;
+    }
+
+    $('fileChipHost').innerHTML = '';
+    var chip = el('span','file-chip', '📎 ' + file.name + ' <span class="x" id="clearFileBtn">✕</span>');
+    $('fileChipHost').appendChild(chip);
+    $('clearFileBtn').addEventListener('click', function(){
+      currentFile = null;
+      $('fileChipHost').innerHTML = '';
+      $('processingHost').innerHTML = '';
+      $('fileOptGrid').style.display = 'none';
+      $('reparseBtn').style.display = 'none';
+      $('headerPreviewHost').innerHTML = '';
+      clearUploadError();
+      state.headers = [];
+      state.rawDataRows = [];
+      buildMappingUI([]);
+      $('mappingDetails').open = false;
+      $('mappingSummary').textContent = '표준 필드 목록 보기 (파일 업로드 전에도 확인할 수 있어요)';
+      fileInput.value = '';
+    });
+
+    $('fileOptGrid').style.display = isDelim ? 'grid' : 'none';
+    $('reparseBtn').style.display = isDelim ? 'inline-flex' : 'none';
+
+    var opts = {
+      encoding: $('optEncoding').value,
+      delimiter: $('optDelimiter').value,
+      headerRow: parseInt($('optHeaderRow').value, 10) || 1
+    };
+
+    $('processingHost').innerHTML = GEAR_SVG + ' 파일을 처리하고 있어요…';
+    $('processingHost').className = 'processing-row';
+
+    // Give the browser a paint frame so the spinner actually shows before the
+    // (possibly heavy, synchronous) parse work below blocks the main thread.
+    setTimeout(function(){
+      readFileAsRows(file, opts, function(err, rows){
+        try{
+          $('processingHost').innerHTML = '';
+          if(err){ showUploadError('파일을 읽는 중 문제가 생겼어요: ' + err.message); return; }
+          if(!rows || !rows.length){
+            showUploadError('파일에서 읽은 내용이 없어요. 파일이 비어있지 않은지 확인해주세요.');
+            return;
+          }
+          if(rows.length < opts.headerRow + 1){
+            showUploadError('헤더 행(' + opts.headerRow + '행) 이후에 데이터가 없어요. 파일은 총 ' + rows.length + '행이에요. 헤더 행 번호를 확인해주세요.');
+            return;
+          }
+          var headerIdx = opts.headerRow - 1;
+          var headers = rows[headerIdx].map(function(h){ return String(h).trim(); });
+          var dataRows = rows.slice(headerIdx + 1).filter(function(r){
+            return r.some(function(c){ return String(c).trim() !== ''; });
+          });
+
+          state.headers = headers;
+          state.rawDataRows = dataRows;
+          state.currencyUnit = parseFloat($('optCurrencyUnit').value) || 1;
+
+          var previewHost = $('headerPreviewHost');
+          previewHost.innerHTML = '';
+          var nonEmptyHeaders = headers.filter(function(h){ return h !== ''; });
+          if(nonEmptyHeaders.length <= 1){
+            var warn = el('div','banner banner-error', '⚠️ <div><b>헤더 행에서 컬럼명을 거의 찾지 못했어요.</b><br>' + opts.headerRow + '행이 실제 컬럼명 행이 맞는지 확인해주세요. 리포트 상단에 안내문이나 병합된 셀이 있으면 "헤더 행 번호"를 바꾼 뒤 "옵션 다시 적용해서 다시 읽기"를 눌러주세요.<br>지금 읽은 헤더: ' + (headers.join(', ') || '(없음)') + '</div>');
+            previewHost.appendChild(warn);
+          } else {
+            previewHost.appendChild(el('div','card-sub', '읽은 헤더(' + headers.length + '개): ' + headers.join(', ')));
+          }
+
+          if(!dataRows.length){
+            showUploadError('헤더 행 다음에 유효한 데이터 행이 없어요. 헤더 행 번호 또는 파일 내용을 확인해주세요.');
+            return;
+          }
+
+          buildMappingUI(headers);
+          $('mappingDetails').open = true;
+          $('mappingSummary').textContent = '표준 필드 매핑';
+          $('mappingCardSub').textContent = 'raw 헤더를 표준 필드에 연결해주세요. 한 번 매핑하면 프리셋으로 저장해 다음에 재사용할 수 있어요.';
+          if(!isReparse) toast(headers.length + '개 컬럼, ' + dataRows.length + '행을 불러왔어요.');
+          else toast('옵션을 다시 적용했어요.');
+        } catch(innerErr){
+          $('processingHost').innerHTML = '';
+          showUploadError('파일 처리 중 오류가 발생했어요: ' + innerErr.message);
+        }
+      });
+    }, 30);
+  } catch(outerErr){
+    $('processingHost').innerHTML = '';
+    showUploadError('파일 업로드 처리 중 오류가 발생했어요: ' + outerErr.message);
+  }
+}
+
+// ---------- 매핑 UI ----------
+
+function normalizeHeader(h){
+  return String(h).toLowerCase().replace(/[\s_\-]/g,'');
+}
+
+function guessMapping(headers){
+  var mapping = {};
+  var usedHeader = {};
+  var mappedField = {};
+  var normHeaders = headers.map(normalizeHeader);
+
+  // Flatten every (field, guess) pair and try the most specific (longest) guesses
+  // first across ALL fields, so a short generic keyword (e.g. "클릭") can't steal a
+  // header meant for a more specific field (e.g. "평균클릭비용" -> CPC) that just
+  // happens to come first in STANDARD_FIELDS order.
+  var pairs = [];
+  STANDARD_FIELDS.forEach(function(f){
+    f.guesses.forEach(function(g){ pairs.push({field:f, guess: normalizeHeader(g)}); });
+  });
+  pairs.sort(function(a,b){ return b.guess.length - a.guess.length; });
+
+  pairs.forEach(function(p){
+    if(mappedField[p.field.key]) return;
+    for(var i = 0; i < headers.length; i++){
+      var h = headers[i];
+      if(usedHeader[h]) continue;
+      if(normHeaders[i].indexOf(p.guess) !== -1){
+        mapping[p.field.key] = h;
+        usedHeader[h] = true;
+        mappedField[p.field.key] = true;
+        return;
+      }
+    }
+  });
+  return mapping;
+}
+
+function buildMappingUI(headers){
+  var guessed = guessMapping(headers);
+  state.mapping = guessed;
+  var body = $('mappingBody');
+  body.innerHTML = '';
+  STANDARD_FIELDS.forEach(function(f){
+    var tr = el('tr');
+    var tdLabel = el('td', null, f.label);
+    var tdLevel = el('td', null, '<span class="req-pill req-' + f.level + '">' + LEVEL_LABEL[f.level] + '</span>');
+    var tdSelect = el('td');
+    var sel = document.createElement('select');
+    sel.dataset.field = f.key;
+    var optNone = document.createElement('option');
+    optNone.value = ''; optNone.textContent = '선택 안 함';
+    sel.appendChild(optNone);
+    headers.forEach(function(h){
+      var o = document.createElement('option');
+      o.value = h; o.textContent = h;
+      if(guessed[f.key] === h) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function(){
+      state.mapping[f.key] = sel.value || null;
+      syncROASFieldState();
+    });
+    tdSelect.appendChild(sel);
+    tr.appendChild(tdLabel); tr.appendChild(tdLevel); tr.appendChild(tdSelect);
+    body.appendChild(tr);
+  });
+  syncROASFieldState();
+  refreshPresetList();
+}
+
+function syncROASFieldState(){
+  var hasRevenue = !!state.mapping.revenue;
+  var field = $('fieldTargetROAS');
+  field.classList.toggle('disabled', !hasRevenue);
+  if(!hasRevenue) $('pTargetROAS').value = '';
+
+  var hasPercentField = !!(state.mapping.ctr || state.mapping.cvr);
+  $('ctrFormatField').style.display = hasPercentField ? 'flex' : 'none';
+}
+
+// ---------- 프리셋 ----------
+
+function loadPresets(){
+  try{ return JSON.parse(localStorage.getItem('naverBidTool_presets') || '{}'); }
+  catch(e){ return {}; }
+}
+function savePresets(p){
+  try{ localStorage.setItem('naverBidTool_presets', JSON.stringify(p)); }catch(e){}
+}
+function refreshPresetList(){
+  var presets = loadPresets();
+  var sel = $('presetSelect');
+  sel.innerHTML = '<option value="">저장된 프리셋 선택…</option>';
+  Object.keys(presets).forEach(function(name){
+    var o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    sel.appendChild(o);
+  });
+}
+$('savePresetBtn').addEventListener('click', function(){
+  var name = prompt('프리셋 이름을 입력해주세요 (예: 네이버 기본 리포트)');
+  if(!name) return;
+  var presets = loadPresets();
+  presets[name] = JSON.parse(JSON.stringify(state.mapping));
+  savePresets(presets);
+  refreshPresetList();
+  $('presetSelect').value = name;
+  toast('"' + name + '" 프리셋을 저장했어요.');
+});
+$('applyPresetBtn').addEventListener('click', function(){
+  var name = $('presetSelect').value;
+  if(!name) { toast('불러올 프리셋을 선택해주세요.'); return; }
+  var presets = loadPresets();
+  var mapping = presets[name];
+  if(!mapping) return;
+  state.mapping = {};
+  Object.keys(mapping).forEach(function(k){
+    var h = mapping[k];
+    if(h && state.headers.indexOf(h) !== -1) state.mapping[k] = h;
+  });
+  document.querySelectorAll('#mappingBody select').forEach(function(sel){
+    var f = sel.dataset.field;
+    sel.value = state.mapping[f] || '';
+  });
+  syncROASFieldState();
+  toast('"' + name + '" 프리셋을 적용했어요.');
+});
+$('deletePresetBtn').addEventListener('click', function(){
+  var name = $('presetSelect').value;
+  if(!name) return;
+  if(!confirm('"' + name + '" 프리셋을 삭제할까요? 이 작업은 되돌릴 수 없어요.')) return;
+  var presets = loadPresets();
+  delete presets[name];
+  savePresets(presets);
+  refreshPresetList();
+});
+
+// ---------- 숫자 파싱 ----------
+
+function parseNumeric(v){
+  if(v === null || v === undefined) return 0;
+  var s = String(v).trim();
+  if(s === '') return 0;
+  s = s.replace(/[^\d.\-]/g, '');
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+// A literal "%" sign always means the number is already percent-scale.
+// Without one, whether "0.035" means "3.5%" or literally "0.035%" is
+// genuinely ambiguous (the plan doc flags this directly), so it's controlled
+// by the explicit "CTR/CVR 원본 표기 방식" selector rather than guessed.
+function parsePercentValue(v, mode){
+  if(v === null || v === undefined) return null;
+  var s = String(v).trim();
+  if(s === '') return null;
+  var hasPercentSign = s.indexOf('%') !== -1;
+  var n = parseNumeric(s);
+  if(isNaN(n)) return null;
+  if(!hasPercentSign && mode === 'ratio') n = n * 100;
+  return n;
+}
+
+// ---------- 매핑 적용 + 집계 ----------
+
+function applyMappingToRows(){
+  var m = state.mapping;
+  var headers = state.headers;
+  var idx = {};
+  Object.keys(m).forEach(function(k){ if(m[k]) idx[k] = headers.indexOf(m[k]); });
+  var unit = state.currencyUnit || 1;
+  var percentMode = $('optPercentFormat').value;
+
+  var rows = state.rawDataRows.map(function(r){
+    function get(key){
+      if(idx[key] === undefined || idx[key] === -1) return '';
+      return r[idx[key]] !== undefined ? r[idx[key]] : '';
+    }
+    return {
+      campaign: get('campaign') || '전체',
+      adgroup: get('adgroup') || '전체',
+      keyword: get('keyword'),
+      keywordId: String(get('keywordId')).trim(),
+      currentBid: m.currentBid ? parseNumeric(get('currentBid')) : null,
+      impressions: parseNumeric(get('impressions')),
+      clicks: parseNumeric(get('clicks')),
+      cost: parseNumeric(get('cost')) * unit,
+      avgRank: m.avgRank ? parseNumeric(get('avgRank')) : null,
+      conversions: parseNumeric(get('conversions')),
+      revenue: m.revenue ? parseNumeric(get('revenue')) * unit : null,
+      ctrRaw: m.ctr ? parsePercentValue(get('ctr'), percentMode) : null,
+      cvrRaw: m.cvr ? parsePercentValue(get('cvr'), percentMode) : null,
+      cpcRaw: m.cpc ? parseNumeric(get('cpc')) * unit : null,
+      prevCtr: m.prevCtr ? parseNumeric(get('prevCtr')) : null
+    };
+  }).filter(function(r){ return r.keyword && String(r.keyword).trim() !== ''; });
+
+  if($('optAggregate').checked){
+    var groups = {};
+    rows.forEach(function(r){
+      var key = r.keyword;
+      var isNewGroup = !groups[key];
+      if(isNewGroup){
+        // Object.assign always returns a NEW object (never === r), so this row's
+        // own numbers must NOT be added again below — they're already copied in
+        // here. Only rows that MERGE into an existing group get summed.
+        groups[key] = Object.assign({}, r, {_bidSum:0,_bidCnt:0,_rankSum:0,_rankCnt:0,_members:[]});
+      }
+      var g = groups[key];
+      if(!isNewGroup){
+        g.impressions += r.impressions;
+        g.clicks += r.clicks;
+        g.cost += r.cost;
+        g.conversions += r.conversions;
+        if(r.revenue !== null) g.revenue = (g.revenue||0) + r.revenue;
+        g.campaign = g.campaign === r.campaign ? g.campaign : '전체';
+        g.adgroup = '전체';
+      }
+      if(r.currentBid !== null){ g._bidSum += r.currentBid; g._bidCnt++; }
+      if(r.avgRank !== null){ g._rankSum += r.avgRank; g._rankCnt++; }
+      // Judgment applies to the merged keyword, but a real Naver bid update has
+      // to target each underlying 키워드ID with ITS OWN current bid — so keep
+      // every original (keywordId, currentBid) pair around for that later.
+      if(r.keywordId) g._members.push({keywordId: r.keywordId, currentBid: r.currentBid});
+    });
+    rows = Object.keys(groups).map(function(k){
+      var g = groups[k];
+      g.currentBid = g._bidCnt ? g._bidSum / g._bidCnt : null;
+      g.avgRank = g._rankCnt ? g._rankSum / g._rankCnt : null;
+      // Raw CTR/CVR/CPC can't be summed across merged rows, so drop them here and
+      // let computeMetrics recompute from the summed base numbers instead.
+      g.ctrRaw = null; g.cvrRaw = null; g.cpcRaw = null;
+      g.members = g._members;
+      delete g._bidSum; delete g._bidCnt; delete g._rankSum; delete g._rankCnt; delete g._members;
+      return g;
+    });
+  }
+  return rows;
+}
+
+// ---------- 지표 계산 ----------
+
+function computeMetrics(r){
+  // Per the plan (2-1 / 3-1): if the raw file already has CTR/CVR/CPC, use those
+  // values as-is; only fall back to computing them from impressions/clicks/cost
+  // when they weren't mapped.
+  var ctr = r.ctrRaw !== null && r.ctrRaw !== undefined ? r.ctrRaw : (r.impressions > 0 ? (r.clicks / r.impressions) * 100 : 0);
+  var cvr = r.cvrRaw !== null && r.cvrRaw !== undefined ? r.cvrRaw : (r.clicks > 0 ? (r.conversions / r.clicks) * 100 : 0);
+  var cpc = r.cpcRaw !== null && r.cpcRaw !== undefined ? r.cpcRaw : (r.clicks > 0 ? (r.cost / r.clicks) : null);
+  var cpa = r.conversions > 0 ? (r.cost / r.conversions) : null;
+  var roas = (r.revenue !== null && r.cost > 0) ? (r.revenue / r.cost) * 100 : null;
+  return {ctr: ctr, cvr: cvr, cpc: cpc, cpa: cpa, roas: roas};
+}
+
+// ---------- 판정 엔진 ----------
+
+function judge(row, m, params){
+  var hasRevenue = m.revenue !== null;
+  var hasRank = row.avgRank !== null;
+  var hasTrend = row.prevCtr !== null && hasRank;
+
+  if(row.clicks < params.minClicks){
+    return {verdict:'관찰', reason:'클릭수 ' + params.minClicks + '회 미만으로 표본이 부족해 판정을 보류해요.', adj:0, flag:false};
+  }
+
+  var cpa = m.cpa, roas = m.roas;
+  var roasOk = hasRevenue ? (roas !== null && roas >= params.targetROAS) : true;
+
+  // 1
+  if(row.conversions === 0 && row.cost >= params.targetCPA){
+    return {verdict:'하향', reason:'무전환 상태로 목표 CPA(' + fmtNum(params.targetCPA) + '원) 이상 비용을 소진했어요.', adj:-params.downStep, flag:false};
+  }
+  // 2
+  if(row.conversions >= 1 && cpa !== null && cpa > params.targetCPA * params.cpaUpperMult){
+    return {verdict:'하향', reason:'CPA가 목표 대비 ' + Math.round(params.cpaUpperMult*100) + '%를 초과했어요.', adj:-params.downStep, flag:false};
+  }
+  // 3
+  if(hasRevenue && roas !== null && roas < params.targetROAS * params.roasLowerMult){
+    return {verdict:'하향', reason:'ROAS가 목표 대비 ' + Math.round(params.roasLowerMult*100) + '% 미만이에요.', adj:-params.downStep, flag:false};
+  }
+  // 4
+  if(cpa !== null && cpa <= params.targetCPA * params.cpaLowerMult && roasOk && (!hasRank || row.avgRank > params.rankMax)){
+    return {verdict:'상향', reason:'효율이 우수하지만 노출순위가 낮아 기회 손실이 있을 것으로 보여요.', adj:params.upStep, flag:false};
+  }
+  // 6 (before 5, so a real regression doesn't get buried under "유지")
+  if(hasTrend){
+    var ctrDrop = row.prevCtr > 0 ? ((row.prevCtr - m.ctr) / row.prevCtr) * 100 : 0;
+    var rankStable = Math.abs(row.avgRank - row.avgRank) === 0; // rank held (no separate prev rank input)
+    if(ctrDrop >= params.ctrDropPct){
+      return {verdict:'조정 보류', reason:'입찰가 문제가 아닌 소재·랜딩페이지 이슈일 수 있어요. 별도 점검이 필요해요.', adj:0, flag:true};
+    }
+  }
+  // 5
+  if(cpa !== null && cpa >= params.targetCPA && cpa <= params.targetCPA * params.cpaUpperMult && roasOk && (!hasRank || (row.avgRank >= params.rankMin && row.avgRank <= params.rankMax))){
+    return {verdict:'유지', reason:'목표 지표 범위 안에서 안정적으로 운영되고 있어요.', adj:0, flag:false};
+  }
+  // 7
+  return {verdict:'관찰', reason:'추가 데이터가 쌓인 뒤 다시 검토해요.', adj:0, flag:false};
+}
+
+// ---------- 실행 ----------
+
+var DEFAULT_TARGET_CPA = 10000;
+var DEFAULT_TARGET_ROAS = 300;
+
+function collectParams(){
+  return {
+    targetCPA: parseFloat($('pTargetCPA').value) || DEFAULT_TARGET_CPA,
+    targetROAS: parseFloat($('pTargetROAS').value) || DEFAULT_TARGET_ROAS,
+    minClicks: parseFloat($('pMinClicks').value) || 0,
+    rankMin: parseFloat($('pRankMin').value) || 1,
+    rankMax: parseFloat($('pRankMax').value) || 3,
+    cpaUpperMult: parseFloat($('pCpaUpperMult').value) || 1.3,
+    cpaLowerMult: parseFloat($('pCpaLowerMult').value) || 0.8,
+    roasLowerMult: parseFloat($('pRoasLowerMult').value) || 0.8,
+    upStep: parseFloat($('pUpStep').value) || 10,
+    downStep: parseFloat($('pDownStep').value) || 10,
+    ctrDropPct: parseFloat($('pCtrDropPct').value) || 50
+  };
+}
+
+// A compact, glanceable summary of the current judgment thresholds — shown
+// even while the detailed edit form is collapsed, so the settings step reads
+// like a small dashboard instead of a blank card.
+function renderParamChips(){
+  var p = collectParams();
+  var hasRevenue = !!state.mapping.revenue;
+  var chips = [
+    {label:'목표 CPA', value: fmtNum(p.targetCPA) + '원', cls:''},
+    {label:'목표 ROAS', value: p.targetROAS + '%', cls: hasRevenue ? '' : 'pc-off'},
+    {label:'최소 클릭수', value: p.minClicks + '회', cls:''},
+    {label:'목표 순위', value: p.rankMin + '~' + p.rankMax + '위', cls:''},
+    {label:'상향 조정폭', value: '+' + p.upStep + '%', cls:'pc-up'},
+    {label:'하향 조정폭', value: '-' + p.downStep + '%', cls:'pc-down'}
+  ];
+  var host = $('paramChipRow');
+  host.innerHTML = '';
+  chips.forEach(function(c){
+    var chip = el('div','param-chip' + (c.cls ? ' ' + c.cls : ''));
+    chip.appendChild(el('div','pc-label', c.label));
+    chip.appendChild(el('div','pc-value', c.value));
+    host.appendChild(chip);
+  });
+}
+['pTargetCPA','pTargetROAS','pMinClicks','pRankMin','pRankMax','pUpStep','pDownStep'].forEach(function(id){
+  var input = $(id);
+  if(input) input.addEventListener('input', renderParamChips);
+});
+
+// Judgment thresholds always run with sensible defaults (users can review/edit
+// them under "고급 설정") — only missing REQUIRED column mappings block a run,
+// since there's no safe default for data that was never mapped.
+function validate(){
+  var errors = [];
+  STANDARD_FIELDS.filter(function(f){ return f.level === 'required'; }).forEach(function(f){
+    if(!state.mapping[f.key]) errors.push(f.label + ' 필드가 매핑되지 않았어요.');
+  });
+  return errors;
+}
+
+$('runBtn').addEventListener('click', function(){
+  if(!currentFile){ toast('먼저 raw 데이터 파일을 업로드해주세요.'); return; }
+  var errors = validate();
+  var host = $('validationHost');
+  host.innerHTML = '';
+  if(errors.length){
+    var b = el('div','banner banner-error', '⚠️ <div><b>판정을 실행할 수 없어요.</b><br>' + errors.join('<br>') + '</div>');
+    host.appendChild(b);
+    return;
+  }
+
+  var runBtn = $('runBtn');
+  var runLabel = $('runBtnLabel');
+  setBtnLoading(runBtn, runLabel, true, '판정하고 있어요…');
+
+  setTimeout(function(){
+    try{
+      var params = collectParams();
+      var rows = applyMappingToRows();
+      if(!rows.length){
+        toast('매핑 결과 유효한 키워드 행이 없어요. 매핑을 확인해주세요.');
+        return;
+      }
+
+      var results = rows.map(function(r){
+        var m = computeMetrics(r);
+        var j = judge(r, m, params);
+        // Naver 파워링크 bids move in 10원 increments, so round the adjusted bid
+        // to the nearest 10원 (i.e. drop to the tens digit) instead of the won.
+        var expectedBid = (r.currentBid !== null && j.adj !== 0) ? Math.round(r.currentBid * (1 + j.adj/100) / 10) * 10 : (r.currentBid !== null ? r.currentBid : null);
+        return Object.assign({}, r, m, j, {expectedBid: expectedBid});
+      });
+
+      state.results = results;
+      state.activeFilter = 'all';
+      state.sortKey = null;
+      state.page = 0;
+      renderResults();
+      $('resultsCard').style.display = 'block';
+      $('resultsCard').scrollIntoView({behavior:'smooth', block:'start'});
+      toast(results.length + '개 키워드 판정을 완료했어요.');
+    } catch(err){
+      showUploadError('판정 실행 중 오류가 발생했어요: ' + err.message);
+    } finally {
+      setBtnLoading(runBtn, runLabel, false, '', '판정 실행하기');
+    }
+  }, 30);
+});
+
+// ---------- 커스텀 기준 선별 ----------
+
+function renderCustomRules(){
+  var host = $('customRulesHost');
+  host.innerHTML = '';
+  if(!state.customRules.length){
+    host.appendChild(el('div','custom-rule-empty', '아직 추가한 조건이 없어요. "+ 조건 추가"를 눌러 CPA·ROAS·CTR 등으로 원하는 기준을 만들어보세요.'));
+    return;
+  }
+  state.customRules.forEach(function(rule, idx){
+    var row = el('div','custom-rule-row');
+
+    var metricSel = document.createElement('select');
+    CUSTOM_METRICS.forEach(function(m){
+      var o = document.createElement('option');
+      o.value = m.key; o.textContent = m.label + (m.unit ? ' (' + m.unit + ')' : '');
+      if(rule.metric === m.key) o.selected = true;
+      metricSel.appendChild(o);
+    });
+    metricSel.addEventListener('change', function(){ rule.metric = metricSel.value; refreshCustomIfActive(); });
+
+    var opSel = document.createElement('select');
+    CUSTOM_OPS.forEach(function(o2){
+      var o = document.createElement('option');
+      o.value = o2.key; o.textContent = o2.label;
+      if(rule.op === o2.key) o.selected = true;
+      opSel.appendChild(o);
+    });
+    opSel.addEventListener('change', function(){ rule.op = opSel.value; refreshCustomIfActive(); });
+
+    var valInput = document.createElement('input');
+    valInput.type = 'number'; valInput.placeholder = '값';
+    valInput.value = rule.value;
+    valInput.addEventListener('input', function(){ rule.value = valInput.value; refreshCustomIfActive(); });
+
+    var removeBtn = document.createElement('button');
+    removeBtn.className = 'cr-remove'; removeBtn.type = 'button'; removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', function(){
+      state.customRules.splice(idx, 1);
+      renderCustomRules();
+      refreshCustomIfActive();
+    });
+
+    row.appendChild(metricSel); row.appendChild(opSel); row.appendChild(valInput); row.appendChild(removeBtn);
+    host.appendChild(row);
+  });
+}
+
+function refreshCustomIfActive(){
+  if(state.activeFilter === 'custom'){ renderTabs(); renderTable(); }
+}
+
+$('addRuleBtn').addEventListener('click', function(){
+  state.customRules.push({metric:'cpa', op:'gt', value:''});
+  renderCustomRules();
+});
+
+$('clearRulesBtn').addEventListener('click', function(){
+  state.customRules = [];
+  state.customRulesActive = false;
+  if(state.activeFilter === 'custom'){ state.activeFilter = 'all'; state.page = 0; }
+  renderCustomRules();
+  if(state.results.length){ renderTabs(); renderTable(); }
+});
+
+$('applyCustomBtn').addEventListener('click', function(){
+  var validRules = state.customRules.filter(function(r){ return r.metric && r.op && r.value !== ''; });
+  if(!validRules.length){
+    toast('조건을 1개 이상 채워주세요 (지표·연산자·값).');
+    return;
+  }
+  if(!state.results.length){
+    toast('먼저 "판정 실행하기"로 결과를 만들어주세요.');
+    return;
+  }
+  state.customRulesActive = true;
+  state.activeFilter = 'custom';
+  state.page = 0;
+  renderTabs();
+  renderTable();
+  var matched = state.results.filter(matchesCustomRules).length;
+  toast('커스텀 조건에 맞는 키워드 ' + matched + '개를 선별했어요.');
+});
+
+// ---------- 결과 렌더 ----------
+
+var VERDICT_ORDER = {'하향':0,'상향':1,'관찰':2,'조정 보류':2,'유지':3};
+
+function verdictClass(v){
+  if(v === '상향') return 'v-up';
+  if(v === '하향') return 'v-down';
+  if(v === '유지') return 'v-keep';
+  return 'v-hold';
+}
+function rowClass(res){
+  if(res.flag) return 'row-flag';
+  if(res.verdict === '상향') return 'row-up';
+  if(res.verdict === '하향') return 'row-down';
+  if(res.verdict === '관찰' || res.verdict === '조정 보류') return 'row-hold';
+  return '';
+}
+
+var COLUMNS = [
+  {key:'campaign', label:'캠페인'},
+  {key:'adgroup', label:'광고그룹'},
+  {key:'keyword', label:'키워드'},
+  {key:'currentBid', label:'현재입찰가', num:true},
+  {key:'impressions', label:'노출수', num:true},
+  {key:'clicks', label:'클릭수', num:true},
+  {key:'cost', label:'총광고비', num:true},
+  {key:'ctr', label:'CTR', num:true, pct:true},
+  {key:'cvr', label:'CVR', num:true, pct:true},
+  {key:'cpc', label:'CPC', num:true},
+  {key:'cpa', label:'CPA', num:true},
+  {key:'roas', label:'ROAS', num:true, pct:true},
+  {key:'avgRank', label:'평균노출순위', num:true, digits:1},
+  {key:'conversions', label:'전환수', num:true},
+  {key:'verdict', label:'판정'},
+  {key:'reason', label:'판정 사유'},
+  {key:'adj', label:'조정폭', num:true},
+  {key:'expectedBid', label:'예상입찰가', num:true}
+];
+
+function renderResults(){
+  renderSummary();
+  renderTabs();
+  renderTable();
+}
+
+function renderSummary(){
+  var total = state.results.length;
+  var counts = {상향:0, 하향:0, 유지:0, 관찰:0};
+  var costDelta = 0;
+  state.results.forEach(function(r){
+    var key = (r.verdict === '조정 보류') ? '관찰' : r.verdict;
+    counts[key] = (counts[key]||0) + 1;
+    if(r.adj) costDelta += r.cost * (r.adj/100);
+  });
+  var grid = $('summaryGrid');
+  grid.innerHTML = '';
+  function card(label, value, sub, cls){
+    var c = el('div','stat-card ' + (cls||''));
+    c.appendChild(el('div','stat-label', label));
+    c.appendChild(el('div','stat-value', value));
+    if(sub) c.appendChild(el('div','stat-sub', sub));
+    return c;
+  }
+  grid.appendChild(card('전체 키워드', fmtNum(total) + '개'));
+  grid.appendChild(card('상향', fmtNum(counts.상향) + '개', fmtPct(total?counts.상향/total*100:0), 'stat-up'));
+  grid.appendChild(card('하향', fmtNum(counts.하향) + '개', fmtPct(total?counts.하향/total*100:0), 'stat-down'));
+  grid.appendChild(card('유지', fmtNum(counts.유지) + '개', fmtPct(total?counts.유지/total*100:0)));
+  grid.appendChild(card('관찰/보류', fmtNum(counts.관찰) + '개', fmtPct(total?counts.관찰/total*100:0)));
+  grid.appendChild(card('예상 광고비 증감(추정)', (costDelta>=0?'+':'') + fmtNum(Math.round(costDelta)) + '원', '조정폭 × 소진비용 기준 추정치'));
+}
+
+function renderTabs(){
+  var tabsDef = [
+    {key:'all', label:'전체'},
+    {key:'상향', label:'상향'},
+    {key:'하향', label:'하향'},
+    {key:'관찰', label:'관찰/보류'},
+    {key:'유지', label:'유지'}
+  ];
+  if(state.customRulesActive) tabsDef.push({key:'custom', label:'⚡ 커스텀'});
+  var host = $('tabs');
+  host.innerHTML = '';
+  tabsDef.forEach(function(t){
+    var cnt;
+    if(t.key === 'all') cnt = state.results.length;
+    else if(t.key === 'custom') cnt = state.results.filter(matchesCustomRules).length;
+    else cnt = state.results.filter(function(r){
+      return t.key === '관찰' ? (r.verdict === '관찰' || r.verdict === '조정 보류') : r.verdict === t.key;
+    }).length;
+    var tab = el('div','tab' + (state.activeFilter === t.key ? ' active' : ''), t.label + ' <span class="cnt">' + cnt + '</span>');
+    tab.addEventListener('click', function(){
+      state.activeFilter = t.key;
+      state.page = 0;
+      renderTabs();
+      renderTable();
+    });
+    host.appendChild(tab);
+  });
+}
+
+function matchesCustomRules(r){
+  if(!state.customRules.length) return false;
+  return state.customRules.every(function(rule){
+    if(!rule.metric || !rule.op || rule.value === '' || rule.value === null || rule.value === undefined) return true;
+    var v = r[rule.metric];
+    var target = parseFloat(rule.value);
+    if(isNaN(target)) return true;
+    if(v === null || v === undefined || isNaN(v)) return false;
+    switch(rule.op){
+      case 'gt': return v > target;
+      case 'gte': return v >= target;
+      case 'lt': return v < target;
+      case 'lte': return v <= target;
+      case 'eq': return Math.abs(v - target) < 1e-9;
+      default: return true;
+    }
+  });
+}
+
+function getFilteredSorted(){
+  var list = state.results.filter(function(r){
+    if(state.activeFilter === 'all') return true;
+    if(state.activeFilter === 'custom') return matchesCustomRules(r);
+    if(state.activeFilter === '관찰') return r.verdict === '관찰' || r.verdict === '조정 보류';
+    return r.verdict === state.activeFilter;
+  });
+  if(state.sortKey){
+    var key = state.sortKey, dir = state.sortDir;
+    list = list.slice().sort(function(a,b){
+      var av = a[key], bv = b[key];
+      if(av === null || av === undefined) av = -Infinity;
+      if(bv === null || bv === undefined) bv = -Infinity;
+      if(typeof av === 'string') return av.localeCompare(bv) * dir;
+      return (av - bv) * dir;
+    });
+  } else {
+    list = list.slice().sort(function(a,b){
+      return (VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict]);
+    });
+  }
+  return list;
+}
+
+function renderTable(){
+  var head = $('resultsHead');
+  head.innerHTML = '';
+  COLUMNS.forEach(function(c){
+    var th = el('th', null, c.label + (state.sortKey===c.key ? (state.sortDir>0?' ▲':' ▼') : ''));
+    th.addEventListener('click', function(){
+      if(state.sortKey === c.key) state.sortDir *= -1;
+      else { state.sortKey = c.key; state.sortDir = 1; }
+      state.page = 0;
+      renderTable();
+    });
+    head.appendChild(th);
+  });
+
+  var body = $('resultsBody');
+  body.innerHTML = '';
+  var list = getFilteredSorted();
+
+  if(!list.length){
+    var tr = el('tr');
+    var td = el('td', null, '조건에 맞는 키워드가 없어요.');
+    td.colSpan = COLUMNS.length;
+    td.style.textAlign = 'center';
+    td.style.padding = '32px';
+    td.style.color = 'var(--neutral-muted)';
+    tr.appendChild(td);
+    body.appendChild(tr);
+    $('paginationHost').innerHTML = '';
+    return;
+  }
+
+  // Rendering can freeze the tab when a raw file has thousands of keywords, so
+  // only ever put one bounded page of rows into the DOM at a time — filtering/
+  // sorting still runs over the full result set, and CSV/Excel export always
+  // pulls the complete filtered list regardless of what page is on screen.
+  var totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if(state.page >= totalPages) state.page = totalPages - 1;
+  if(state.page < 0) state.page = 0;
+  var start = state.page * PAGE_SIZE;
+  var pageList = list.slice(start, start + PAGE_SIZE);
+
+  var frag = document.createDocumentFragment();
+  pageList.forEach(function(r){
+    var tr = el('tr', rowClass(r));
+    COLUMNS.forEach(function(c){
+      var td;
+      if(c.key === 'verdict'){
+        td = el('td');
+        var pillLabel = r.flag ? '⚠ ' + r.verdict : r.verdict;
+        td.innerHTML = '<span class="verdict-pill ' + verdictClass(r.verdict) + '">' + pillLabel + '</span>';
+      } else if(c.key === 'reason'){
+        td = el('td','reason', r.reason);
+      } else if(c.key === 'adj'){
+        td = el('td','num', (r.adj>0?'+':'') + r.adj + '%');
+      } else if(c.num){
+        var v = r[c.key];
+        var text = c.pct ? fmtPct(v, c.digits!==undefined?c.digits:1) : fmtNum(v, c.digits);
+        td = el('td','num', text);
+      } else {
+        td = el('td', null, r[c.key]);
+      }
+      tr.appendChild(td);
+    });
+    frag.appendChild(tr);
+  });
+  body.appendChild(frag);
+
+  renderPagination(list.length, totalPages, start, pageList.length);
+}
+
+function renderPagination(total, totalPages, start, shownCount){
+  var host = $('paginationHost');
+  host.innerHTML = '';
+  if(total <= PAGE_SIZE){
+    if(total > 200) host.appendChild(el('div','large-data-note', '총 ' + fmtNum(total) + '개 키워드를 화면에 모두 표시했어요.'));
+    return;
+  }
+  var prev = el('button','btn btn-secondary', '이전');
+  prev.disabled = state.page === 0;
+  prev.addEventListener('click', function(){ state.page--; renderTable(); document.getElementById('resultsTable').scrollIntoView({block:'start', behavior:'smooth'}); });
+
+  var next = el('button','btn btn-secondary', '다음');
+  next.disabled = state.page >= totalPages - 1;
+  next.addEventListener('click', function(){ state.page++; renderTable(); document.getElementById('resultsTable').scrollIntoView({block:'start', behavior:'smooth'}); });
+
+  var info = el('span','page-info', (start+1) + '–' + (start+shownCount) + ' / 총 ' + fmtNum(total) + '개 (페이지 ' + (state.page+1) + '/' + totalPages + ')');
+
+  host.appendChild(prev);
+  host.appendChild(info);
+  host.appendChild(next);
+  host.appendChild(el('div','large-data-note', '전체 ' + fmtNum(total) + '개는 화면 대신 Excel/CSV로 한 번에 내려받아 확인하는 걸 추천해요.'));
+}
+
+// ---------- 내보내기 ----------
+
+function buildExportRows(list){
+  return list.map(function(r){
+    return {
+      캠페인: r.campaign, 광고그룹: r.adgroup, 키워드: r.keyword,
+      현재입찰가: r.currentBid, 노출수: r.impressions, 클릭수: r.clicks, 총광고비: Math.round(r.cost),
+      'CTR(%)': +r.ctr.toFixed(2), 'CVR(%)': +r.cvr.toFixed(2), CPC: r.cpc !== null ? Math.round(r.cpc) : null,
+      CPA: r.cpa !== null ? Math.round(r.cpa) : null, 'ROAS(%)': r.roas !== null ? +r.roas.toFixed(1) : null,
+      평균노출순위: r.avgRank !== null ? +r.avgRank.toFixed(1) : null, 전환수: r.conversions,
+      판정: r.verdict, 판정사유: r.reason, '권장조정폭(%)': r.adj,
+      조정후예상입찰가: r.expectedBid, 최종반영여부: ''
+    };
+  });
+}
+
+$('exportCsvBtn').addEventListener('click', function(){
+  if(!state.results.length) return;
+  var btn = $('exportCsvBtn');
+  var label = $('exportCsvLabel');
+  setBtnLoading(btn, label, true, '만드는 중…');
+  setTimeout(function(){
+    try{
+      buildAndDownloadCsv();
+    } catch(err){
+      showUploadError('CSV 생성 중 문제가 생겼어요: ' + err.message);
+    } finally {
+      setBtnLoading(btn, label, false, '', 'CSV로 내보내기');
+    }
+  }, 30);
+});
+
+function buildAndDownloadCsv(){
+  var list = getFilteredSorted();
+  var rows = buildExportRows(list);
+  var headers = Object.keys(rows[0]);
+  var lines = [headers.join(',')];
+  rows.forEach(function(r){
+    lines.push(headers.map(function(h){
+      var v = r[h] === null || r[h] === undefined ? '' : String(r[h]);
+      if(v.indexOf(',') !== -1 || v.indexOf('"') !== -1) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }).join(','));
+  });
+  var blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  downloadBlob(blob, '파워링크_입찰가_판정결과.csv');
+  toast('CSV 파일을 내보냈어요.');
+}
+
+$('exportExcelBtn').addEventListener('click', function(){
+  if(!state.results.length) return;
+  var btn = $('exportExcelBtn');
+  var label = $('exportExcelLabel');
+  setBtnLoading(btn, label, true, 'Excel 만드는 중…');
+  // buildExcel()'s row/style-building loop runs synchronously before it ever
+  // reaches an actual await, so defer the call itself by a tick — otherwise a
+  // large result set blocks the main thread before the browser gets to paint
+  // the spinner we just set.
+  setTimeout(function(){
+    buildExcel().then(function(buffer){
+      var blob = new Blob([buffer], {type:'application/octet-stream'});
+      downloadBlob(blob, '파워링크_입찰가_판정결과.xlsx');
+      toast('Excel 파일을 내보냈어요.');
+    }).catch(function(err){
+      showUploadError('Excel 생성 중 문제가 생겼어요: ' + err.message);
+    }).finally(function(){
+      setBtnLoading(btn, label, false, '', 'Excel로 내보내기');
+    });
+  }, 30);
+});
+
+// 네이버 검색광고 "키워드 입찰가 일괄수정" 업로드 템플릿(ko_edit_keyword_bid_template.csv)의
+// 안내문 6줄을 그대로 보존한다 — 7행부터 값을 읽는 고정 양식이라 문구를 건드리면 업로드가 깨진다.
+var NAVER_BID_TEMPLATE_HEADER = [
+  "광고그룹ID 키워드ID 는 '광고다운로드' 파일에서 확인 할 수 있습니다.,,,",
+  "키워드ID 기준으로 키워드 수정요청이 적용됩니다. 입찰가는 쉼표나 '원' 표시를 제외한 숫자만 입력해 주세요.,,,",
+  "입찰가는 '키워드입찰가'로 저장되며 '기본입찰가'가 있더라도 수정된 '키워드입찰가'로 광고가 진행됩니다.,,,",
+  "입력은 최대 만(10000)개까지 가능합니다.,,,",
+  "[중요] 7행부터 입력값이 시스템에 반영됩니다. 1~6행을 삭제하지 마세요. 엑셀에서 저장시 CSV 파일형식을 꼭 확인하시기 바랍니다.,,,",
+  "광고그룹ID (선택),키워드ID (필수),키워드 (선택),\"키워드입찰가 (필수,숫자만)\""
+].join('\r\n');
+
+function csvField(v){
+  var s = String(v === null || v === undefined ? '' : v);
+  if(s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) s = '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+// Judgment runs on the (possibly keyword-merged) result row, but an actual
+// Naver bid update must target each real 키워드ID using ITS OWN current bid —
+// so when rows were aggregated, fan each one back out to its member keywordIds
+// instead of emitting one row per merged result.
+function collectNaverBidRows(){
+  var out = [];
+  state.results.forEach(function(r){
+    if(!r.adj) return; // 유지/관찰은 조정 내역이 아니라서 제외
+    if(r.members && r.members.length){
+      r.members.forEach(function(mem){
+        if(!mem.keywordId || mem.currentBid === null) return;
+        var newBid = Math.round(mem.currentBid * (1 + r.adj/100) / 10) * 10;
+        out.push({keywordId: mem.keywordId, keyword: r.keyword, bid: newBid});
+      });
+    } else if(r.keywordId && r.currentBid !== null){
+      out.push({keywordId: r.keywordId, keyword: r.keyword, bid: r.expectedBid});
+    }
+  });
+  return out;
+}
+
+$('exportNaverBtn').addEventListener('click', function(){
+  if(!state.results.length) return;
+  if(!state.mapping.currentBid){
+    showUploadError('네이버 입찰 조정 파일을 만들려면 "현재입찰가" 필드가 매핑되어 있어야 해요. 새 입찰가를 계산하려면 현재 입찰가가 필요해요.');
+    return;
+  }
+  var btn = $('exportNaverBtn');
+  var label = $('exportNaverLabel');
+  setBtnLoading(btn, label, true, '만드는 중…');
+  setTimeout(function(){
+    try{
+      var bidRows = collectNaverBidRows();
+      if(!bidRows.length){
+        toast('상향·하향 조정이 필요한 키워드가 없어서 만들 파일이 없어요.');
+        return;
+      }
+      var lines = [NAVER_BID_TEMPLATE_HEADER];
+      bidRows.forEach(function(row){
+        lines.push(['', csvField(row.keywordId), csvField(row.keyword), row.bid].join(','));
+      });
+      var fullText = lines.join('\r\n') + '\r\n';
+
+      var blob;
+      try{
+        var bytes = cptable.utils.encode(949, fullText);
+        blob = new Blob([new Uint8Array(bytes)], {type:'text/csv'});
+      } catch(encErr){
+        // Fallback if the CP949 encoder isn't available: UTF-8 with BOM still
+        // opens correctly in Excel, though Naver's uploader may expect EUC-KR.
+        blob = new Blob(['﻿' + fullText], {type:'text/csv;charset=utf-8;'});
+        toast('CP949 인코딩을 사용할 수 없어 UTF-8로 내보냈어요. 업로드가 안 되면 엑셀에서 다시 저장해보세요.');
+      }
+      downloadBlob(blob, '키워드입찰가_수정_업로드.csv');
+      toast(bidRows.length + '개 키워드의 입찰 조정 파일을 만들었어요.');
+    } catch(err){
+      showUploadError('네이버 입찰 조정 파일 생성 중 문제가 생겼어요: ' + err.message);
+    } finally {
+      setBtnLoading(btn, label, false, '', '네이버 입찰 조정 파일 받기');
+    }
+  }, 30);
+});
+
+function downloadBlob(blob, filename){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+
+var FILL_UP = 'FFE8F3FF', FILL_DOWN = 'FFFDECEE', FILL_HOLD = 'FFF2F4F6', FILL_FLAG = 'FFFFF6DC';
+
+function styleSheet(ws, rows, colorRows){
+  var cols = Object.keys(rows[0] || {캠페인:1});
+  ws.columns = cols.map(function(c){ return {header:c, key:c, width: c==='판정사유' ? 40 : (c==='키워드'?20:14)}; });
+  rows.forEach(function(r, i){
+    var row = ws.addRow(r);
+    if(colorRows){
+      var src = colorRows[i];
+      var fill = null;
+      if(src.flag) fill = FILL_FLAG;
+      else if(src.verdict === '상향') fill = FILL_UP;
+      else if(src.verdict === '하향') fill = FILL_DOWN;
+      else if(src.verdict === '관찰' || src.verdict === '조정 보류') fill = FILL_HOLD;
+      if(fill){
+        row.eachCell(function(cell){
+          cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:fill}};
+        });
+      }
+      if(src.flag){
+        var reasonCell = row.getCell('판정사유');
+        reasonCell.font = {color:{argb:'FF8A6300'}, bold:true};
+      }
+    }
+  });
+  ws.getRow(1).font = {bold:true};
+  ws.getRow(1).eachCell(function(cell){
+    cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFF2F4F6'}};
+  });
+  ws.autoFilter = {from:{row:1,column:1}, to:{row:1, column:cols.length}};
+  ws.views = [{state:'frozen', ySplit:1}];
+}
+
+function buildExcel(){
+  var wb = new ExcelJS.Workbook();
+  wb.creator = '파워링크 입찰가 자동 조정 툴';
+  wb.created = new Date();
+
+  var all = state.results.slice().sort(function(a,b){ return VERDICT_ORDER[a.verdict]-VERDICT_ORDER[b.verdict]; });
+  var up = all.filter(function(r){ return r.verdict === '상향'; });
+  var down = all.filter(function(r){ return r.verdict === '하향'; });
+  var hold = all.filter(function(r){ return r.verdict === '관찰' || r.verdict === '조정 보류'; });
+
+  var wsAll = wb.addWorksheet('전체결과');
+  styleSheet(wsAll, buildExportRows(all), all);
+
+  if(up.length){ var wsUp = wb.addWorksheet('상향 대상'); styleSheet(wsUp, buildExportRows(up), up); }
+  if(down.length){ var wsDown = wb.addWorksheet('하향 대상'); styleSheet(wsDown, buildExportRows(down), down); }
+  if(hold.length){ var wsHold = wb.addWorksheet('관찰_보류 대상'); styleSheet(wsHold, buildExportRows(hold), hold); }
+
+  if(state.customRulesActive){
+    var custom = state.results.filter(matchesCustomRules);
+    if(custom.length){ var wsCustom = wb.addWorksheet('커스텀 선별'); styleSheet(wsCustom, buildExportRows(custom), custom); }
+  }
+
+  var wsSum = wb.addWorksheet('요약');
+  var total = all.length;
+  var counts = {상향:up.length, 하향:down.length, 유지: all.filter(function(r){return r.verdict==='유지';}).length, '관찰/보류': hold.length};
+  var costDelta = all.reduce(function(s,r){ return s + (r.adj ? r.cost*(r.adj/100) : 0); }, 0);
+  wsSum.addRow(['전체 키워드 수', total]);
+  wsSum.addRow([]);
+  wsSum.addRow(['판정', '건수', '비중(%)']);
+  wsSum.getRow(3).font = {bold:true};
+  Object.keys(counts).forEach(function(k){
+    wsSum.addRow([k, counts[k], total ? +(counts[k]/total*100).toFixed(1) : 0]);
+  });
+  wsSum.addRow([]);
+  wsSum.addRow(['조정 시 예상 광고비 증감액(추정)', Math.round(costDelta)]);
+  wsSum.getColumn(1).width = 34;
+  wsSum.getColumn(2).width = 14;
+  wsSum.getColumn(3).width = 14;
+
+  return wb.xlsx.writeBuffer();
+}
+
+// ---------- 툴 / 가이드 뷰 전환 ----------
+
+(function(){
+  var toolView = $('toolView');
+  var guideView = $('guideView');
+  var viewTabs = document.querySelectorAll('#viewTabs .tab');
+  viewTabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      viewTabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      var isGuide = tab.dataset.view === 'guide';
+      toolView.style.display = isGuide ? 'none' : 'block';
+      guideView.style.display = isGuide ? 'block' : 'none';
+      window.scrollTo({top:0, behavior:'instant'});
+    });
+  });
+
+  var guideNavTabs = document.querySelectorAll('#guideNav .tab');
+  guideNavTabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var target = $(tab.dataset.anchor);
+      if(target) target.scrollIntoView({block:'start'});
+    });
+  });
+})();
+
+// ---------- 초기 상태 ----------
+// 매핑 표·판정 기준값은 raw 파일 업로드 전에도 미리 볼 수 있어야 하므로,
+// 빈 헤더 목록으로 한 번 그려둔다 (업로드 후 buildMappingUI가 실제 헤더로 다시 그림).
+buildMappingUI([]);
+renderParamChips();
+renderCustomRules();
+
+})();
+</script>
+</body>
+</html>
